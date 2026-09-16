@@ -8,7 +8,7 @@ import TabGroupProperties from './TabGroupProperties';
 import PageProperties from './PageProperties';
 
 const panelStyle = {
-  width: 300, background: '#fbfcfe', borderLeft: '1px solid #e8ecf1',
+  width: 300, background: '#f5f7fb', borderLeft: '1px solid #e6eaf1',
   overflow: 'auto', flexShrink: 0, padding: 14,
 };
 

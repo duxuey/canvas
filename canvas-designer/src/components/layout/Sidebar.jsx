@@ -11,6 +11,35 @@ import { groupDefsByModule } from '../../utils/tableModules';
 /** 分组内默认展示的元件数，超出后显示「更多」 */
 const INITIAL_COUNT = 20;
 
+const GROUP_HEADER = {
+  display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+  padding: '7px 10px', background: '#f1f5fb', border: '1px solid #e7ecf3',
+  borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+  color: '#475569', textAlign: 'left',
+  transition: 'background .15s, border-color .15s',
+};
+
+const COUNT_PILL = {
+  fontSize: 10, fontWeight: 700, color: '#64748b',
+  background: '#e3e9f2', borderRadius: 8, padding: '1px 7px',
+  flexShrink: 0, lineHeight: 1.6,
+};
+
+const DEF_ITEM = {
+  display: 'flex', alignItems: 'center', gap: 8,
+  padding: '7px 10px 7px 26px', marginBottom: 3, background: '#fff',
+  borderRadius: 7, cursor: 'grab', border: '1px solid #e7ecf3',
+  fontSize: 12, color: '#334155', userSelect: 'none',
+  boxShadow: '0 1px 2px rgba(15,23,42,.04)',
+  transition: 'border-color .15s, box-shadow .15s, transform .15s, background .15s',
+};
+
+const CONTROL_BADGE = {
+  fontSize: 9, color: '#5d9cec', background: '#eef4ff',
+  padding: '1px 6px', borderRadius: 8, flexShrink: 0,
+  fontWeight: 600, letterSpacing: '.2px',
+};
+
 /**
  * 画布设计器侧边栏。
  * 根据 ui.sidebarTab 显示「组件」或「元件」：
@@ -23,8 +52,8 @@ export default function Sidebar() {
 
   return (
     <div style={{
-      width: 224, background: '#fbfcfe', display: 'flex', flexDirection: 'column',
-      borderRight: '1px solid #e8ecf1', flexShrink: 0, overflow: 'hidden',
+      width: 224, background: '#f5f7fb', display: 'flex', flexDirection: 'column',
+      borderRight: '1px solid #e6eaf1', flexShrink: 0, overflow: 'hidden',
     }}>
       <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
         {ui.sidebarTab === 'elements' ? <ElementDefList /> : <ComponentPalette />}
@@ -113,18 +142,14 @@ function ElementDefList() {
         const hiddenCount = moduleDefs.length - visibleDefs.length;
         return (
         <div key={module} style={{ marginBottom: 6 }}>
-          <button onClick={() => toggle(module)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-              padding: '7px 10px', background: '#f1f5f9', border: 'none',
-              borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit',
-              color: '#475569', textAlign: 'left',
-            }}>
+          <button onClick={() => toggle(module)} style={GROUP_HEADER}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#eef3fb'; e.currentTarget.style.borderColor = '#d8e3f2'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5fb'; e.currentTarget.style.borderColor = '#e7ecf3'; }}>
             <Icon name={isCollapsed ? 'chevronRight' : 'chevronDown'} size={13} style={{ color: '#94a3b8' }} />
             <span style={{ fontSize: 12, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {module}
             </span>
-            <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{moduleDefs.length}</span>
+            <span style={COUNT_PILL}>{moduleDefs.length}</span>
           </button>
           {!isCollapsed && (
             <div style={{ padding: '4px 0 2px' }}>
@@ -133,16 +158,9 @@ function ElementDefList() {
                   draggable
                   onDragStart={(e) => onDragStart(e, def)}
                   title={def.elem_ename ? `${def.elem_name} (${def.elem_ename})` : def.elem_name}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '7px 10px 7px 26px', marginBottom: 3, background: '#fff',
-                    borderRadius: 7, cursor: 'grab', border: '1px solid #e8ecf1',
-                    fontSize: 12, color: '#334155', userSelect: 'none',
-                    boxShadow: '0 1px 2px rgba(15,23,42,.04)',
-                    transition: 'border-color .15s, box-shadow .15s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#5d9cec'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(93,156,236,.18)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e8ecf1'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,.04)'; }}>
+                  style={DEF_ITEM}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#5d9cec'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(93,156,236,.20)'; e.currentTarget.style.transform = 'translateX(2px)'; e.currentTarget.style.background = '#f8fbff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e7ecf3'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,.04)'; e.currentTarget.style.transform = ''; e.currentTarget.style.background = '#ffffff'; }}>
                   <span style={{ flex: 1, overflow: 'hidden', minWidth: 0, whiteSpace: 'nowrap' }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {def.elem_name || '未命名'}
@@ -156,10 +174,7 @@ function ElementDefList() {
                       </span>
                     )}
                   </span>
-                  <span style={{
-                    fontSize: 9, color: '#5d9cec', background: '#eff5fd',
-                    padding: '1px 6px', borderRadius: 8, flexShrink: 0,
-                  }}>
+                  <span style={CONTROL_BADGE}>
                     {def.control_type}
                   </span>
                 </div>
@@ -204,6 +219,7 @@ function TemplateQuickLoad() {
       const data = await pageTemplateApi.queryCanvases(tpl.c_template_code);
       const canvases = data?.canvases || [];
       if (canvases.length === 0) {
+        if (!canvasStore.isCurrentPristine()) canvasStore.newTab();
         canvasStore.reset();
         canvasStore.setMeta({ templateCode: tpl.c_template_code, systemCode: tpl.c_system_code || 'SYS01' });
         ui.addToast('模板已应用到设计器（无画布，请新建）', 'info');
@@ -214,7 +230,7 @@ function TemplateQuickLoad() {
       const c = cvd?.canvas;
       if (!c) return;
       const json = typeof c.c_canvas_json === 'string' ? JSON.parse(c.c_canvas_json || '{}') : (c.c_canvas_json || {});
-      canvasStore.setFromCanvas(json, {
+      canvasStore.openCanvas(json, {
         canvasCode: c.c_canvas_code,
         canvasName: c.c_canvas_name,
         canvasEname: c.c_canvas_ename,

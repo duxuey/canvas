@@ -410,7 +410,7 @@ async function executeOne(name, input, store, ui) {
       const json = typeof canvas.c_canvas_json === 'string'
         ? JSON.parse(canvas.c_canvas_json || '{}')
         : (canvas.c_canvas_json || {});
-      store.setFromCanvas(json, {
+      store.openCanvas(json, {
         canvasCode: canvas.c_canvas_code,
         canvasName: canvas.c_canvas_name,
         canvasEname: canvas.c_canvas_ename,

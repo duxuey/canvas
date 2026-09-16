@@ -77,18 +77,14 @@ export default function ComponentPalette() {
       )}
       {groups.map(([name, nameComps]) => (
         <div key={name} style={{ marginBottom: 6 }}>
-          <button onClick={() => toggle(name)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-              padding: '7px 10px', background: '#f1f5f9', border: 'none',
-              borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit',
-              color: '#475569', textAlign: 'left',
-            }}>
+          <button onClick={() => toggle(name)} style={groupHeaderStyle}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#eef3fb'; e.currentTarget.style.borderColor = '#d8e3f2'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5fb'; e.currentTarget.style.borderColor = '#e7ecf3'; }}>
             <Icon name={collapsed[name] ? 'chevronRight' : 'chevronDown'} size={13} style={{ color: '#94a3b8' }} />
             <span style={{ fontSize: 12, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {name}
             </span>
-            <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{nameComps.length}</span>
+            <span style={countPill}>{nameComps.length}</span>
           </button>
           {!collapsed[name] && (
             <div style={{ padding: '4px 0 2px' }}>
@@ -98,8 +94,8 @@ export default function ComponentPalette() {
                   onDragStart={(e) => onDragStart(e, comp)}
                   title={comp.c_group_desc || ''}
                   style={itemStyle}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#5d9cec'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(93,156,236,.18)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e8ecf1'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,.04)'; }}>
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#5d9cec'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(93,156,236,.20)'; e.currentTarget.style.transform = 'translateX(2px)'; e.currentTarget.style.background = '#f8fbff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e7ecf3'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,.04)'; e.currentTarget.style.transform = ''; e.currentTarget.style.background = '#ffffff'; }}>
                   <span style={glyphStyle}><Icon name="components" size={15} /></span>
                   <span style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: '#334155' }}>
@@ -157,17 +153,32 @@ function groupComponentsByName(comps) {
   return entries;
 }
 
+const groupHeaderStyle = {
+  display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+  padding: '7px 10px', background: '#f1f5fb', border: '1px solid #e7ecf3',
+  borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+  color: '#475569', textAlign: 'left',
+  transition: 'background .15s, border-color .15s',
+};
+
+const countPill = {
+  fontSize: 10, fontWeight: 700, color: '#64748b',
+  background: '#e3e9f2', borderRadius: 8, padding: '1px 7px',
+  flexShrink: 0, lineHeight: 1.6,
+};
+
 const itemStyle = {
   display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px 7px 26px',
   margin: '3px 0', background: '#ffffff', borderRadius: 8, cursor: 'grab',
-  color: '#334155', fontSize: 13, userSelect: 'none', border: '1px solid #e8ecf1',
+  color: '#334155', fontSize: 13, userSelect: 'none', border: '1px solid #e7ecf3',
   boxShadow: '0 1px 2px rgba(15,23,42,.04)',
-  transition: 'border-color .15s, box-shadow .15s',
+  transition: 'border-color .15s, box-shadow .15s, transform .15s, background .15s',
 };
 
 const glyphStyle = {
   width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-  background: 'linear-gradient(135deg, #eff5fd, #f5f3ff)',
-  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  background: 'linear-gradient(135deg, #eef4ff, #f3efff)',
   color: '#5d9cec',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  boxShadow: 'inset 0 0 0 1px rgba(93,156,236,.10)',
 };

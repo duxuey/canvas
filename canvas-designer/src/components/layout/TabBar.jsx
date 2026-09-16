@@ -9,6 +9,8 @@ function isNamed(c) {
 export default function TabBar() {
   const tabs = useCanvasStore((s) => s.tabs);
   const activeTabId = useCanvasStore((s) => s.activeTabId);
+  const liveName = useCanvasStore((s) => s.canvasName);
+  const liveCode = useCanvasStore((s) => s.canvasCode);
   const newTab = useCanvasStore((s) => s.newTab);
   const switchTab = useCanvasStore((s) => s.switchTab);
   const closeTab = useCanvasStore((s) => s.closeTab);
@@ -17,8 +19,12 @@ export default function TabBar() {
     <div style={barStyle}>
       <div style={tabsWrap}>
         {tabs.map((t) => {
-          const c = t.snapshot;
           const active = t.id === activeTabId;
+          // 活动标签的名称/编码以 store 实时状态为准：快照仅在新建/切换标签时回写，
+          // 加载画布后不会即时同步，直接读快照会导致页签名不刷新。
+          const c = active
+            ? { ...t.snapshot, canvasName: liveName, canvasCode: liveCode }
+            : t.snapshot;
           const named = isNamed(c);
           return (
             <div key={t.id}
@@ -59,7 +65,7 @@ export default function TabBar() {
 /* ── Styles ── */
 const barStyle = {
   display: 'flex', alignItems: 'center',
-  background: '#f6f8fc', borderBottom: '1px solid #e8ecf1',
+  background: '#f3f6fa', borderBottom: '1px solid #e6eaf1',
   padding: '0 10px', flexShrink: 0, minHeight: 40,
 };
 

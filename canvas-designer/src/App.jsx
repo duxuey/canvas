@@ -14,7 +14,7 @@ export default function App() {
   const { route, navigate } = useHashRouter();
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#ffffff' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#eef1f6' }}>
       <Header route={route} navigate={navigate} />
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {route.view === 'designer' && <Designer />}

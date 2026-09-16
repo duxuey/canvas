@@ -30,12 +30,15 @@
   /* 边框 & 底色（层级从浅到深） */
   --c-border: #e2e8f0;
   --c-border-light: #eef2f7;
-  --c-bg-page: #eef3fa;
-  --c-bg-page-grad: linear-gradient(180deg, #eef3fa 0%, #f6f8fc 40%, #f0f4f8 100%);
+  --c-bg-page: #eef1f6;
+  --c-bg-page-grad:
+    radial-gradient(1100px 520px at 8% -6%, rgba(93, 156, 236, .16) 0%, rgba(93, 156, 236, 0) 60%),
+    radial-gradient(900px 480px at 92% -4%, rgba(139, 92, 246, .12) 0%, rgba(139, 92, 246, 0) 55%),
+    linear-gradient(180deg, #f3f6fb 0%, #eef1f6 55%, #e9edf4 100%);
   --c-bg-card: #ffffff;
-  --c-bg-section: #f6f9fc;
-  --c-bg-accent: #eff5fd;
-  --c-bg-accent-grad: linear-gradient(135deg, #eff5fd 0%, #f5f3ff 100%);
+  --c-bg-section: #f4f6fb;
+  --c-bg-accent: #eef4ff;
+  --c-bg-accent-grad: linear-gradient(135deg, #eef4ff 0%, #f3efff 100%);
 
   /* 圆角 & 阴影 */
   --radius-sm: 6px;

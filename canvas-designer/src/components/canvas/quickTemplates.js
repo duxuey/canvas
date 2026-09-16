@@ -53,6 +53,7 @@ export function loadTemplate(store, ui, templateKey, defaultCols) {
   // Remember current system/page before reset
   const { systemCode, pageCode, templateCode } = store;
 
+  if (!store.isCurrentPristine()) store.newTab();
   store.reset();
   store.setMeta({ canvasName: tpl.name, canvasType: 'form', systemCode, pageCode, templateCode });
 

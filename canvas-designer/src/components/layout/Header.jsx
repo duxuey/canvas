@@ -5,7 +5,7 @@ import { useSystemStore } from '../../store/systemStore';
 
 import { canvasApi } from '../../api/canvasApi';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { loadTemplate } from '../canvas/quickTemplates';
 import PublishDialog from '../dialogs/PublishDialog';
 import Icon from '../common/Icon';
@@ -30,44 +30,43 @@ const sel = {
 };
 
 // ── Nav ──
-const navWrap  = { background: 'linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%)', borderBottom: '1px solid #e8ecf1', flexShrink: 0, boxShadow: '0 1px 0 rgba(15,23,42,.02)' };
-const navRow   = { display: 'flex', alignItems: 'center', height: 50, padding: '0 18px', gap: 2 };
-const brand    = { fontSize: 12, color: '#5d9cec', display: 'flex', alignItems: 'center', gap: 8, marginRight: 10, fontFamily: '"Microsoft Yahei", sans-serif' };
+const navWrap  = { background: 'linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%)', borderBottom: '1px solid #e6eaf1', flexShrink: 0, boxShadow: '0 1px 0 rgba(15,23,42,.02)' };
+const navRow   = { display: 'flex', alignItems: 'center', height: 50, padding: '0 18px', gap: 8 };
+const brand    = { fontSize: 12, color: '#5d9cec', display: 'flex', alignItems: 'center', gap: 8, fontFamily: '"Microsoft Yahei", sans-serif' };
 
 const brandName = {
-  fontWeight: 700, fontSize: 15, letterSpacing: '.3px',
+  fontWeight: 800, fontSize: 16, letterSpacing: '.4px',
   background: 'linear-gradient(135deg, #5d9cec 0%, #8b5cf6 100%)',
   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
   fontFamily: '"Microsoft Yahei", sans-serif',
 };
 const brandSub  = {
-  fontWeight: 600, fontSize: 15,
+  fontWeight: 700, fontSize: 16,
   background: 'linear-gradient(135deg, #5d9cec 0%, #8b5cf6 100%)',
   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
   fontFamily: '"Microsoft Yahei", sans-serif',
 };
-const navSep   = { width: 1, height: 22, background: '#e8ecf1', margin: '0 8px' };
+const navSep   = { width: 1, height: 20, background: '#e2e8f0', flexShrink: 0 };
 
 const tab = (active) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6,
-  padding: '6px 13px', border: 'none', borderRadius: 8,
+  padding: '7px 14px', border: 'none', borderRadius: 8,
   background: active ? 'linear-gradient(135deg, #5d9cec, #4a8ad4)' : 'transparent',
-  color: active ? '#fff' : '#5d9cec',
-  cursor: 'pointer', fontSize: 12, fontWeight: active ? 600 : 500, whiteSpace: 'nowrap',
+  color: active ? '#fff' : '#475569',
+  cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+  letterSpacing: '.2px',
   boxShadow: active ? '0 2px 6px rgba(93,156,236,.32)' : 'none',
-  transition: 'all .18s', fontFamily: '"Microsoft Yahei", sans-serif', lineHeight: 1.4,
+  transition: 'all .18s', fontFamily: 'inherit', lineHeight: 1.4,
 });
 
 // ── Toolbar ──
 const tbar = {
-  display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px',
-  background: 'linear-gradient(180deg, #fafbfc 0%, #f4f7fb 100%)',
-  flexShrink: 0, borderTop: '1px solid #e8ecf1', flexWrap: 'nowrap', overflowX: 'auto',
+  display: 'flex', alignItems: 'center', gap: 15, padding: '8px 14px',
+  background: 'linear-gradient(180deg, #f7f9fc 0%, #eef2f7 100%)',
+  flexShrink: 0, borderTop: '1px solid #e6eaf1', flexWrap: 'nowrap',
 };
 const card = {
-  display: 'flex', alignItems: 'center', gap: 7,
-  background: '#fff', borderRadius: 9, padding: '5px 11px',
-  border: '1px solid #e8ecf1', boxShadow: '0 1px 2px rgba(15,23,42,.04)',
+  display: 'flex', alignItems: 'center', gap: 6,
   flexShrink: 0, whiteSpace: 'nowrap',
 };
 const cardLabel = {
@@ -75,11 +74,10 @@ const cardLabel = {
   display: 'inline-flex', alignItems: 'center', gap: 5, marginRight: 2,
 };
 const cardLabelGlyph = {
-  width: 20, height: 20, borderRadius: 6,
-  background: 'linear-gradient(135deg, #eff5fd, #f5f3ff)',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   color: '#5d9cec', flexShrink: 0,
 };
+const toolbarSep = { width: 1, height: 22, background: '#e2e8f0', flexShrink: 0 };
 
 /* ============================================================
    Component
@@ -127,8 +125,10 @@ export default function Header({ route, navigate }) {
   const handleSelectCanvas = async (canvasCode) => {
     if (canvasCode === '__loading__') return;
     if (!canvasCode || canvasCode === '__new__') {
+      const sysCode = store.systemCode;
+      if (!store.isCurrentPristine()) store.newTab();
       store.reset();
-      store.setMeta({ systemCode: store.systemCode });
+      store.setMeta({ systemCode: sysCode });
       setShowNewCanvasInput(true);
       return;
     }
@@ -228,27 +228,26 @@ export default function Header({ route, navigate }) {
 
           {/* Nav tabs */}
           {NAV.map((item, i) => (
-            <span key={item.key} style={{ display: 'inline-flex' }}>
+            <Fragment key={item.key}>
               <button style={tab(route.view === item.key)}
+                onMouseEnter={(e) => { if (route.view === item.key) return; e.currentTarget.style.background = '#eef4ff'; e.currentTarget.style.color = '#5d9cec'; }}
+                onMouseLeave={(e) => { if (route.view === item.key) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; }}
                 onClick={() => navigate(item.key)}>
                 <Icon name={item.icon} size={14} strokeWidth={2} />
                 {item.label}
               </button>
-              {i === 0 && <div style={navSep} />}
-              {i === 1 && <div style={navSep} />}
-              {i === 3 && <div style={navSep} />}
-              {i === 5 && <div style={navSep} />}
-            </span>
+              {i < NAV.length - 1 && <div style={navSep} />}
+            </Fragment>
           ))}
 
           {/* 返回设计（预览时显示，位于 AI 生成之后） */}
           {ui.previewOpen && (
-            <span style={{ display: 'inline-flex' }}>
+            <Fragment>
               <div style={navSep} />
               <button style={tab(false)} onClick={ui.togglePreview}>
                 <Icon name="back" size={14} strokeWidth={2} /> 返回设计
               </button>
-            </span>
+            </Fragment>
           )}
 
           <div style={{ flex: 1 }} />
@@ -270,14 +269,15 @@ export default function Header({ route, navigate }) {
           {/* ── ① 系统归属 ── */}
           <div style={card}>
             <span style={cardLabel}><span style={cardLabelGlyph}><Icon name="system" size={12} /></span>系统</span>
-            {sysSelect(130)}
+            {sysSelect(110)}
           </div>
+          <div style={toolbarSep} />
 
           {/* ── ② 画布选择（下拉） ── */}
           <div style={card}>
             <span style={cardLabel}><span style={cardLabelGlyph}><Icon name="canvases" size={12} /></span>画布</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ width: 180 }}>
+              <div style={{ width: 150 }}>
                 <Select
                   value={store.canvasCode || '__new__'}
                   popMinWidth={300}
@@ -293,13 +293,14 @@ export default function Header({ route, navigate }) {
                 />
               </div>
               {showNewCanvasInput || (!store.canvasCode && canvasList.length === 0) ? (
-                <input style={{ ...inp, width: 110 }}
+                <input style={{ ...inp, width: 96 }}
                   value={store.canvasName}
                   onChange={(e) => store.setMeta({ canvasName: e.target.value })}
                   placeholder="画布名称" />
               ) : null}
             </div>
           </div>
+          <div style={toolbarSep} />
 
           {/* ── ③ 表单列数 ── */}
           <div style={card}>
@@ -308,6 +309,7 @@ export default function Header({ route, navigate }) {
               style={{ ...inp, width: 36, textAlign: 'center', padding: '4px 2px' }}
               value={store.columns} onChange={(e) => store.setColumns(Number(e.target.value))} />
           </div>
+          <div style={toolbarSep} />
 
           {/* ── ④ 快捷添加 ── */}
           <div style={card}>
@@ -322,11 +324,12 @@ export default function Header({ route, navigate }) {
               <Icon name="tabs" size={12} /> 标签页
             </button>
           </div>
+          <div style={toolbarSep} />
 
           {/* ── ⑤ 快速模板 ── */}
           <div style={card}>
             <span style={cardLabel}><span style={cardLabelGlyph}><Icon name="templates" size={12} /></span>模板</span>
-            <div style={{ width: 130 }}>
+            <div style={{ width: 110 }}>
               <Select
                 value=""
                 placeholder="选择预设模板"
@@ -342,16 +345,16 @@ export default function Header({ route, navigate }) {
 
           {/* spacer */}
           <div style={{ flex: 1, minWidth: 8 }} />
+          <div style={toolbarSep} />
 
           {/* ── 操作区 ── */}
           <div style={{
-            ...card, gap: 4, padding: '4px 8px',
-            background: 'linear-gradient(135deg, #fafbfc, #f0f4f8)',
-            border: '1px solid #dce3ea',
+            display: 'flex', alignItems: 'center', gap: 4,
+            flexShrink: 0, whiteSpace: 'nowrap',
           }}>
             <span style={{
               fontSize: 11, color: '#5d9cec', fontWeight: 600,
-              background: '#eff5fd', borderRadius: 10, padding: '2px 10px',
+              background: '#eef4ff', borderRadius: 10, padding: '2px 10px',
               marginRight: 4,
             }}>
               {store.items.length} 项
@@ -423,7 +426,7 @@ function loadCanvasIntoStore(c, store) {
   const json = typeof c.c_canvas_json === 'string'
     ? JSON.parse(c.c_canvas_json || '{}')
     : (c.c_canvas_json || {});
-  store.setFromCanvas(json, {
+  store.openCanvas(json, {
     canvasCode: c.c_canvas_code,
     canvasName: c.c_canvas_name,
     canvasEname: c.c_canvas_ename,

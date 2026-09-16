@@ -27,7 +27,7 @@ export default function CanvasArea() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Canvas surface — 内容超出视口时纵向滚动 */}
-      <div onClick={onCanvasClick} style={{ flex: 1, minHeight: 0, padding: '0 20px 20px', overflow: 'auto', background: '#ffffff' }}
+      <div onClick={onCanvasClick} style={{ flex: 1, minHeight: 0, padding: '0 20px 20px', overflow: 'auto', background: '#eef1f6' }}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
         onDrop={(e) => {
           e.preventDefault();

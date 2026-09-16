@@ -145,7 +145,7 @@ export default function AIPageGenerator() {
       const json = typeof c.c_canvas_json === 'string'
         ? JSON.parse(c.c_canvas_json || '{}')
         : (c.c_canvas_json || {});
-      canvasStore.setFromCanvas(json, {
+      canvasStore.openCanvas(json, {
         canvasCode: c.c_canvas_code,
         canvasName: c.c_canvas_name,
         canvasEname: c.c_canvas_ename,

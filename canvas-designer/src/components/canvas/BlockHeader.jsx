@@ -7,7 +7,7 @@ import EditableTitle from './EditableTitle';
  */
 
 const BLUE = '#5d9cec';
-const BLUE_BG = 'linear-gradient(90deg, #eff5fd 0%, #f6f8fc 100%)';
+const BLUE_BG = 'linear-gradient(90deg, #eef4ff 0%, #f3f6fb 100%)';
 
 export default function BlockHeader({
   title, onChange,

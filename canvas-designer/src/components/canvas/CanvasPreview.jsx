@@ -10,7 +10,7 @@ import PageButtons from './PageButtons';
    ============================================================ */
 
 const S = {
-  wrap: { height: '100%', overflow: 'auto', background: 'linear-gradient(180deg, #eef3fa 0%, #f6f8fc 100%)', padding: '0 24px 24px' },
+  wrap: { height: '100%', overflow: 'auto', background: 'linear-gradient(180deg, #f3f6fb 0%, #e9edf4 100%)', padding: '0 24px 24px' },
   card: { background: '#fff', padding: '28px 32px', borderRadius: 14, boxShadow: '0 4px 18px rgba(15,23,42,.07)', border: '1px solid #eef2f7', width: '100%' },
   row: (cols) => ({
     display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`,

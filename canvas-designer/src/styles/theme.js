@@ -17,10 +17,10 @@ export const colors = {
   warning: '#f59e0b',
 
   // 背景层级（从浅到深）
-  bgPage: '#f0f4f8',      // 页面最外层
+  bgPage: '#eef1f6',      // 页面最外层
   bgCard: '#ffffff',      // 卡片
-  bgSection: '#f6f9fc',   // 卡片内分组区块
-  bgAccent: '#eff5fd',    // 强调块 / 信息提示 / 选中
+  bgSection: '#f4f6fb',   // 卡片内分组区块
+  bgAccent: '#eef4ff',    // 强调块 / 信息提示 / 选中
 
   // 边框
   border: '#e2e8f0',

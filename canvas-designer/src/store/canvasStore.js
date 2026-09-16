@@ -32,6 +32,14 @@ function commitActive(s) {
   return s.tabs.map((t) => (t.id === s.activeTabId ? { ...t, snapshot: snap } : t));
 }
 
+/** 判断某画布状态是否为「未编辑过的空画布」——是则可直接复用，无需新建标签 */
+function isPristineCanvas(s) {
+  return !s.canvasCode
+    && s.items.length === 0
+    && s.buttons.length === 0
+    && (!s.canvasName || s.canvasName === 'Untitled Canvas');
+}
+
 /**
  * canvasStore — unified page/canvas store.
  * Items are an ordered list of blocks: section / table / component / free element.
@@ -621,6 +629,18 @@ export const useCanvasStore = create((set, get) => ({
   },
 
   reset: () => set(freshCanvas()),
+
+  /** 当前活动标签是否为「未编辑过的空画布」 */
+  isCurrentPristine: () => isPristineCanvas(get()),
+
+  /**
+   * 打开一个画布：当前标签若是未编辑的空画布则直接复用，否则新建标签再载入，
+   * 从而支持同时打开多个画布、互不覆盖。
+   */
+  openCanvas: (data, meta) => {
+    if (!isPristineCanvas(get())) get().newTab();
+    get().setFromCanvas(data, meta);
+  },
 
   // ================================================================
   // 多画布标签
