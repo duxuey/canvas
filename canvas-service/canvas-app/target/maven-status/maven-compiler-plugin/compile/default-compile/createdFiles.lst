@@ -1,0 +1,4 @@
+com\hundsun\jrescloud\common\boot\CloudApplication.class
+com\hundsun\bontal\CanvasServiceStarter.class
+com\hundsun\jrescloud\db\core\configuration\EnableCloudDataSource.class
+com\hundsun\bontal\config\DataSourceConfig.class

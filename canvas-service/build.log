@@ -1,0 +1,396 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] canvas-service                                                     [pom]
+[INFO] canvas-api                                                         [jar]
+[INFO] canvas-core                                                        [jar]
+[INFO] canvas-app                                                         [jar]
+[INFO] 
+[INFO] -----------------< com.hundsun.bontal:canvas-service >------------------
+[INFO] Building canvas-service 1.0.0-SNAPSHOT                             [1/4]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] -------------------< com.hundsun.bontal:canvas-api >--------------------
+[INFO] Building canvas-api 1.0.0-SNAPSHOT                                 [2/4]
+[INFO]   from canvas-api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ canvas-api ---
+[INFO] skip non existing resourceDirectory D:\work\project\canvas-service\canvas-api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.8.1:compile (default-compile) @ canvas-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] -------------------< com.hundsun.bontal:canvas-core >-------------------
+[INFO] Building canvas-core 1.0.0-SNAPSHOT                                [3/4]
+[INFO]   from canvas-core\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ canvas-core ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.8.1:compile (default-compile) @ canvas-core ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 31 source files to D:\work\project\canvas-service\canvas-core\target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/PageTemplateServiceImpl.java:[8,38] 找不到符号
+  符号:   类 BeanUtil
+  位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/PageTemplateServiceImpl.java:[9,27] 找不到符号
+  符号:   类 BusinessMinService
+  位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/PageTemplateServiceImpl.java:[10,28] 程序包com.hundsun.ta.utils不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/PageTemplateServiceImpl.java:[19,46] 找不到符号
+  符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasElementController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasConfigDao.java:[5,43] 找不到符号
+  符号:   类 LTTSDaoException
+  位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/PageTemplateDao.java:[5,43] 找不到符号
+  符号:   类 LTTSDaoException
+  位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/PageTemplateDao.java:[6,43] 找不到符号
+  符号:   类 LTTSDaoNoDataFoundException
+  位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[3,37] 找不到符号
+  符号:   类 ElementGroupItemMapper
+  位置: 程序包 com.hundsun.bontal.canvas.dao
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[8,38] 找不到符号
+  符号:   类 BeanUtil
+  位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[9,27] 找不到符号
+  符号:   类 BusinessMinService
+  位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[10,28] 程序包com.hundsun.ta.utils不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[20,46] 找不到符号
+  符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[26,13] 找不到符号
+  符号:   类 ElementGroupItemMapper
+  位置: 类 com.hundsun.bontal.canvas.serviceimpl.ElementGroupServiceImpl
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasDao.java:[5,43] 找不到符号
+  符号:   类 LTTSDaoException
+  位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasDao.java:[6,43] 找不到符号
+  符号:   类 LTTSDaoNoDataFoundException
+  位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasElementServiceImpl.java:[6,38] 找不到符号
+  符号:   类 BeanUtil
+  位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasElementServiceImpl.java:[7,27] 找不到符号
+  符号:   类 BusinessMinService
+  位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasElementServiceImpl.java:[15,47] 找不到符号
+  符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasElementDao.java:[5,43] 找不到符号
+  符号:   类 LTTSDaoException
+  位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasConfigServiceImpl.java:[6,38] 找不到符号
+  符号:   类 BeanUtil
+  位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasConfigServiceImpl.java:[7,27] 找不到符号
+  符号:   类 BusinessMinService
+  位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasConfigServiceImpl.java:[13,46] 找不到符号
+  符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasButtonDao.java:[5,43] 找不到符号
+  符号:   类 LTTSDaoException
+  位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasConfigController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasButtonController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasButtonServiceImpl.java:[6,38] 找不到符号
+  符号:   类 BeanUtil
+  位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasButtonServiceImpl.java:[7,27] 找不到符号
+  符号:   类 BusinessMinService
+  位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasButtonServiceImpl.java:[15,46] 找不到符号
+  符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasServiceImpl.java:[14,38] 找不到符号
+  符号:   类 BeanUtil
+  位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasServiceImpl.java:[15,27] 找不到符号
+  符号:   类 BusinessMinService
+  位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasServiceImpl.java:[16,28] 程序包com.hundsun.ta.utils不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasServiceImpl.java:[29,40] 找不到符号
+  符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasElementController.java:[18,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasElementController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasElementController.java:[26,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasElementController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasElementController.java:[34,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasElementController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[21,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[29,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[37,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[45,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[53,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[61,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[69,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[77,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[85,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasConfigController.java:[18,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasConfigController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasConfigController.java:[26,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasConfigController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[18,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[26,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[34,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[42,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[50,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[58,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasButtonController.java:[18,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.CanvasButtonController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[18,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[26,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[34,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[42,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[50,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[58,6] 找不到符号
+  符号:   类 TranCode
+  位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[INFO] 63 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for canvas-service 1.0.0-SNAPSHOT:
+[INFO] 
+[INFO] canvas-service ..................................... SUCCESS [  0.003 s]
+[INFO] canvas-api ......................................... SUCCESS [  1.139 s]
+[INFO] canvas-core ........................................ FAILURE [  2.816 s]
+[INFO] canvas-app ......................................... SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.355 s
+[INFO] Finished at: 2026-06-22T19:07:38+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.8.1:compile (default-compile) on project canvas-core: Compilation failure: Compilation failure: 
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/PageTemplateServiceImpl.java:[8,38] 找不到符号
+[ERROR]   符号:   类 BeanUtil
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/PageTemplateServiceImpl.java:[9,27] 找不到符号
+[ERROR]   符号:   类 BusinessMinService
+[ERROR]   位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/PageTemplateServiceImpl.java:[10,28] 程序包com.hundsun.ta.utils不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/PageTemplateServiceImpl.java:[19,46] 找不到符号
+[ERROR]   符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasElementController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasConfigDao.java:[5,43] 找不到符号
+[ERROR]   符号:   类 LTTSDaoException
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/PageTemplateDao.java:[5,43] 找不到符号
+[ERROR]   符号:   类 LTTSDaoException
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/PageTemplateDao.java:[6,43] 找不到符号
+[ERROR]   符号:   类 LTTSDaoNoDataFoundException
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[3,37] 找不到符号
+[ERROR]   符号:   类 ElementGroupItemMapper
+[ERROR]   位置: 程序包 com.hundsun.bontal.canvas.dao
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[8,38] 找不到符号
+[ERROR]   符号:   类 BeanUtil
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[9,27] 找不到符号
+[ERROR]   符号:   类 BusinessMinService
+[ERROR]   位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[10,28] 程序包com.hundsun.ta.utils不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[20,46] 找不到符号
+[ERROR]   符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/ElementGroupServiceImpl.java:[26,13] 找不到符号
+[ERROR]   符号:   类 ElementGroupItemMapper
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.serviceimpl.ElementGroupServiceImpl
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasDao.java:[5,43] 找不到符号
+[ERROR]   符号:   类 LTTSDaoException
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasDao.java:[6,43] 找不到符号
+[ERROR]   符号:   类 LTTSDaoNoDataFoundException
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasElementServiceImpl.java:[6,38] 找不到符号
+[ERROR]   符号:   类 BeanUtil
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasElementServiceImpl.java:[7,27] 找不到符号
+[ERROR]   符号:   类 BusinessMinService
+[ERROR]   位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasElementServiceImpl.java:[15,47] 找不到符号
+[ERROR]   符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasElementDao.java:[5,43] 找不到符号
+[ERROR]   符号:   类 LTTSDaoException
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasConfigServiceImpl.java:[6,38] 找不到符号
+[ERROR]   符号:   类 BeanUtil
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasConfigServiceImpl.java:[7,27] 找不到符号
+[ERROR]   符号:   类 BusinessMinService
+[ERROR]   位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasConfigServiceImpl.java:[13,46] 找不到符号
+[ERROR]   符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/dao/CanvasButtonDao.java:[5,43] 找不到符号
+[ERROR]   符号:   类 LTTSDaoException
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.exception
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasConfigController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasButtonController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasButtonServiceImpl.java:[6,38] 找不到符号
+[ERROR]   符号:   类 BeanUtil
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasButtonServiceImpl.java:[7,27] 找不到符号
+[ERROR]   符号:   类 BusinessMinService
+[ERROR]   位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasButtonServiceImpl.java:[15,46] 找不到符号
+[ERROR]   符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasServiceImpl.java:[14,38] 找不到符号
+[ERROR]   符号:   类 BeanUtil
+[ERROR]   位置: 程序包 com.hundsun.bontal.common.util
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasServiceImpl.java:[15,27] 找不到符号
+[ERROR]   符号:   类 BusinessMinService
+[ERROR]   位置: 程序包 com.hundsun.ta.base
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasServiceImpl.java:[16,28] 程序包com.hundsun.ta.utils不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/serviceimpl/CanvasServiceImpl.java:[29,40] 找不到符号
+[ERROR]   符号: 类 BusinessMinService
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[4,44] 程序包com.hundsun.bontal.common.annotation不存在
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasElementController.java:[18,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasElementController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasElementController.java:[26,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasElementController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasElementController.java:[34,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasElementController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[21,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[29,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[37,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[45,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[53,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[61,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[69,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[77,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasController.java:[85,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasConfigController.java:[18,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasConfigController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasConfigController.java:[26,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasConfigController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[18,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[26,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[34,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[42,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[50,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/PageTemplateController.java:[58,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.PageTemplateController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/CanvasButtonController.java:[18,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.CanvasButtonController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[18,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[26,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[34,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[42,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[50,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] /D:/work/project/canvas-service/canvas-core/src/main/java/com/hundsun/bontal/canvas/controller/ElementGroupController.java:[58,6] 找不到符号
+[ERROR]   符号:   类 TranCode
+[ERROR]   位置: 类 com.hundsun.bontal.canvas.controller.ElementGroupController
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :canvas-core
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8

@@ -1,0 +1,16 @@
+CREATE TABLE `tb_page_template` (
+  `c_pk_id` varchar(32) NOT NULL COMMENT '主键ID',
+  `c_template_code` varchar(32) NOT NULL COMMENT '模板代码',
+  `c_template_name` varchar(100) DEFAULT NULL COMMENT '模板名称',
+  `c_template_desc` varchar(500) DEFAULT NULL COMMENT '模板描述',
+  `c_template_type` varchar(32) DEFAULT NULL COMMENT '模板类型',
+  `c_del_flag` varchar(1) DEFAULT '0' COMMENT '删除标志',
+  `c_system_code` varchar(64) NOT NULL COMMENT '系统代码',
+  `c_crtr_code` varchar(32) DEFAULT NULL,
+  `c_uptr_code` varchar(32) DEFAULT NULL,
+  `d_crtr_time` datetime DEFAULT NULL,
+  `d_uptr_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`c_pk_id`),
+  UNIQUE KEY `uk_template_code` (`c_template_code`),
+  KEY `idx_system_code` (`c_system_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='页面模板表'

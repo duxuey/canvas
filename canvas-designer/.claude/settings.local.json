@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(npx vite *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8006/canvas-service/page_template/query_by_system)",
+      "Bash(netstat -ano)",
+      "Bash(cmd.exe /c \"netstat -ano | findstr 8006\")",
+      "Bash(java -version)",
+      "Bash(mvn --version)",
+      "Bash(mvn -pl canvas-app -am exec:java -Dexec.mainClass=com.hundsun.bontal.CanvasServiceStarter -Dexec.classpathScope=compile -o)",
+      "Bash(mvn -version)",
+      "Read(//c/Users/Jelncy/.m2/repository/com/hundsun/bontal/bontal-biz-service/**)",
+      "Bash(cmd.exe /c \"dir C:\\\\Users\\\\Jelncy\\\\.m2\\\\repository\\\\com\\\\hundsun\\\\bontal\\\\bontal-biz-service 2>&1\")",
+      "Bash(mvn -f D:\\\\work\\\\project\\\\canvas-service\\\\canvas-app\\\\pom.xml exec:java -Dexec.mainClass=com.hundsun.bontal.CanvasServiceStarter -o)",
+      "Bash(mvn -pl canvas-app exec:java -Dexec.mainClass=com.hundsun.bontal.CanvasServiceStarter -o)",
+      "Bash(mvn -f /d/work/project/canvas-service/pom.xml -pl canvas-app spring-boot:run)",
+      "Bash(mvn -f /d/work/project/canvas-service/pom.xml -pl canvas-app dependency:build-classpath -DincludeScope=runtime -Dmdep.outputFile=/d/work/project/canvas-service/cp.txt -o)",
+      "Bash(cmd.exe /c \"netstat -ano | findstr 3306\")"
+    ]
+  }
+}

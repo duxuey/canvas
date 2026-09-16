@@ -1,0 +1,427 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 首期全量同步工具：fpic_prod_db（产品工厂） -> 画布系统 core_db
+ *
+ * 流程：
+ *   1. 清理画布系统脏数据（8 张表）
+ *   2. 全量同步模板 / 画面 / 元件 / 属性
+ *
+ * 说明：
+ *   - 仅读源库、写目标库，不回写源库（回写由 canvas-service 内同步模块负责，默认关闭）
+ *   - 不考虑产品/版本/渠道维度，不纳入批单画面
+ *   - 元件按 (c_screen_no, c_elem_no) 去重，取 d_uptr_time 最新一条
+ *
+ * 编译运行：
+ *   javac -encoding UTF-8 -cp "../canvas-app/target/lib/mysql-connector-java-8.0.20.jar" SyncTool.java
+ *   java  -cp ".;../canvas-app/target/lib/mysql-connector-java-8.0.20.jar" SyncTool
+ */
+public class SyncTool {
+
+    // 源库：产品工厂
+    private static final String SRC_URL = "jdbc:mysql://10.1.23.21:33061/fpic_prod_db"
+            + "?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true";
+    private static final String SRC_USER = "fpic_prod";
+    private static final String SRC_PWD = "123456";
+
+    // 目标库：画布系统
+    private static final String DST_URL = "jdbc:mysql://localhost:3306/core_db"
+            + "?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true";
+    private static final String DST_USER = "root";
+    private static final String DST_PWD = "123456";
+
+    // 多租户系统代码（源为富邦财险，统一占位）
+    private static final String SYSTEM_CODE = "FPIC";
+
+    // 雪花 ID 简化实现（保持与画布系统 c_pk_id 19 位数字风格一致）
+    private static long seq = 0L;
+    private static long lastTs = 0L;
+
+    private static synchronized String nextId() {
+        long ts = System.currentTimeMillis();
+        if (ts == lastTs) {
+            seq++;
+        } else {
+            lastTs = ts;
+            seq = 0L;
+        }
+        return String.valueOf(ts) + String.format("%03d", seq % 1000L);
+    }
+
+    public static void main(String[] args) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            System.err.println("未找到 MySQL 驱动: " + e.getMessage());
+            System.exit(1);
+        }
+
+        try (Connection src = DriverManager.getConnection(SRC_URL, SRC_USER, SRC_PWD);
+             Connection dst = DriverManager.getConnection(DST_URL, DST_USER, DST_PWD)) {
+
+            System.out.println("=== 1. 清理画布系统脏数据 ===");
+            cleanTarget(dst);
+
+            System.out.println("\n=== 2. 同步模板 (tb_prod_template -> tb_page_template) ===");
+            int nTpl = syncTemplates(src, dst);
+            System.out.println("  模板同步 " + nTpl + " 条");
+
+            // 预加载：画面类型（from screen_prop）、画面->模板 反查（from tmplt_rel_screen）
+            Map<String, String> screenTypeMap = loadScreenTypes(src);
+            Map<String, String> screenTplMap = loadScreenTemplateMap(src);
+
+            System.out.println("\n=== 3. 同步画面 (tb_prod_rel_screen -> tb_canvas) ===");
+            int nCanvas = syncCanvas(src, dst, screenTypeMap, screenTplMap);
+            System.out.println("  画面同步 " + nCanvas + " 条");
+
+            System.out.println("\n=== 4. 同步元件 (tb_prod_screen_rel_elem -> tb_canvas_element) ===");
+            int nElem = syncElements(src, dst);
+            System.out.println("  元件同步 " + nElem + " 条");
+
+            System.out.println("\n=== 5. 同步属性 (tb_prod_screen_prop -> tb_canvas_config) ===");
+            int nConfig = syncConfig(src, dst);
+            System.out.println("  属性同步 " + nConfig + " 条");
+
+            System.out.println("\n=== 6. 抽样核对 ===");
+            verify(dst, src);
+
+            System.out.println("\n同步完成。");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    // ---------- 清理 ----------
+
+    private static void cleanTarget(Connection dst) throws Exception {
+        String[] tables = {
+                "tb_canvas_publish", "tb_canvas_element", "tb_canvas_config",
+                "tb_canvas_button", "tb_element_group_item", "tb_element_group",
+                "tb_page_template", "tb_canvas"
+        };
+        try (Statement st = dst.createStatement()) {
+            for (String t : tables) {
+                int n = st.executeUpdate("DELETE FROM " + t);
+                System.out.println("  " + t + " 清理 " + n + " 条");
+            }
+        }
+    }
+
+    // ---------- 模板 ----------
+
+    private static int syncTemplates(Connection src, Connection dst) throws Exception {
+        String sql = "INSERT INTO tb_page_template "
+                + "(c_pk_id, c_template_code, c_template_name, c_template_desc, c_template_type, "
+                + "c_del_flag, c_system_code, c_crtr_code, c_uptr_code, d_crtr_time, d_uptr_time) "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+        int cnt = 0;
+        try (Statement st = src.createStatement();
+             ResultSet rs = st.executeQuery("SELECT * FROM tb_prod_template");
+             PreparedStatement ps = dst.prepareStatement(sql)) {
+            while (rs.next()) {
+                ps.setString(1, nextId());
+                ps.setString(2, rs.getString("c_template_no"));
+                ps.setString(3, rs.getString("c_template_name"));
+                ps.setString(4, rs.getString("c_template_desc"));
+                ps.setString(5, rs.getString("c_model_type"));
+                ps.setString(6, rs.getString("c_del_flag"));
+                ps.setString(7, SYSTEM_CODE);
+                ps.setString(8, rs.getString("c_crtr_code"));
+                ps.setString(9, rs.getString("c_uptr_code"));
+                ps.setString(10, rs.getString("d_crtr_time"));
+                ps.setString(11, rs.getString("d_uptr_time"));
+                ps.addBatch();
+                cnt++;
+            }
+            ps.executeBatch();
+        }
+        return cnt;
+    }
+
+    // ---------- 预加载辅助映射 ----------
+
+    // c_screen_no -> c_screen_type (form/table)
+    private static Map<String, String> loadScreenTypes(Connection src) throws Exception {
+        Map<String, String> m = new HashMap<>();
+        try (Statement st = src.createStatement();
+             ResultSet rs = st.executeQuery("SELECT c_screen_no, c_screen_type FROM tb_prod_screen_prop WHERE c_screen_type IS NOT NULL")) {
+            while (rs.next()) {
+                m.putIfAbsent(rs.getString("c_screen_no"), rs.getString("c_screen_type"));
+            }
+        }
+        return m;
+    }
+
+    // c_screen_no -> c_template_no
+    private static Map<String, String> loadScreenTemplateMap(Connection src) throws Exception {
+        Map<String, String> m = new HashMap<>();
+        try (Statement st = src.createStatement();
+             ResultSet rs = st.executeQuery("SELECT c_screen_no, c_template_no FROM tb_prod_tmplt_rel_screen")) {
+            while (rs.next()) {
+                m.putIfAbsent(rs.getString("c_screen_no"), rs.getString("c_template_no"));
+            }
+        }
+        return m;
+    }
+
+    // ---------- 画面 ----------
+
+    private static int syncCanvas(Connection src, Connection dst,
+                                  Map<String, String> screenTypeMap,
+                                  Map<String, String> screenTplMap) throws Exception {
+        String sql = "INSERT INTO tb_canvas "
+                + "(c_pk_id, c_canvas_code, c_canvas_name, c_canvas_ename, c_canvas_type, "
+                + "c_canvas_json, n_show_order, c_rel_js_file, c_base_flag, c_system_code, "
+                + "c_page_code, c_template_code, c_remark, c_crtr_code, c_uptr_code, d_crtr_time, d_uptr_time) "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        int cnt = 0;
+        try (Statement st = src.createStatement();
+             ResultSet rs = st.executeQuery("SELECT * FROM tb_prod_rel_screen");
+             PreparedStatement ps = dst.prepareStatement(sql)) {
+            while (rs.next()) {
+                String screenNo = rs.getString("c_screen_no");
+                String type = screenTypeMap.get(screenNo);
+                if (type == null) type = "form";
+
+                ps.setString(1, nextId());
+                ps.setString(2, screenNo);
+                ps.setString(3, rs.getString("c_screen_cname"));
+                ps.setString(4, rs.getString("c_screen_ename"));
+                ps.setString(5, type);
+                ps.setString(6, rs.getString("c_screen_json"));
+                ps.setInt(7, rs.getInt("n_show_order"));
+                ps.setString(8, rs.getString("c_rel_js_file"));
+                ps.setString(9, rs.getString("c_base_comp_flag"));
+                ps.setString(10, SYSTEM_CODE);
+                ps.setString(11, null); // c_page_code：源无页面代码维度
+                ps.setString(12, screenTplMap.get(screenNo)); // c_template_code
+                ps.setString(13, rs.getString("c_remark"));
+                ps.setString(14, rs.getString("c_crtr_code"));
+                ps.setString(15, rs.getString("c_uptr_code"));
+                ps.setString(16, rs.getString("d_crtr_time"));
+                ps.setString(17, rs.getString("d_uptr_time"));
+                ps.addBatch();
+                cnt++;
+                if (cnt % 5000 == 0) {
+                    ps.executeBatch();
+                    System.out.println("    已同步画面 " + cnt + " 条");
+                }
+            }
+            ps.executeBatch();
+        }
+        return cnt;
+    }
+
+    // ---------- 元件 ----------
+
+    private static int syncElements(Connection src, Connection dst) throws Exception {
+        String sql = "INSERT INTO tb_canvas_element "
+                + "(c_pk_id, c_canvas_code, c_elem_code, c_elem_name, c_elem_ename, c_control_type, "
+                + "c_check_type, c_required_flag, c_readonly_flag, c_visible_flag, c_default_value, "
+                + "c_enabled_flag, c_min_value, c_max_value, c_precision, c_code_list_name, n_string_length, "
+                + "c_click_event_func, c_comp_code, n_elem_show_seq, c_rel_field_name, c_rel_table_name, "
+                + "c_control_attr, c_date_format, c_frontend_event, c_readonly_var, c_valid_control_attr, "
+                + "c_group_flag, c_group_first_item, c_client_group, c_auto_select_first, c_tooltip_title, "
+                + "c_search_url, c_search_param_key, c_search_result_key, c_search_select_event, "
+                + "c_system_code, c_template_code, c_crtr_code, c_uptr_code, d_crtr_time, d_uptr_time) "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+        // 去重：按 (c_screen_no, c_elem_no) 取 d_uptr_time 最新一条
+        Map<String, ElemRow> dedup = new HashMap<>();
+        int raw = 0;
+        try (Statement st = src.createStatement();
+             ResultSet rs = st.executeQuery("SELECT * FROM tb_prod_screen_rel_elem")) {
+            while (rs.next()) {
+                raw++;
+                String key = rs.getString("c_screen_no") + " " + rs.getString("c_elem_no");
+                String upTime = rs.getString("d_uptr_time");
+                ElemRow cur = dedup.get(key);
+                if (cur == null || (upTime != null && (cur.upTime == null || upTime.compareTo(cur.upTime) > 0))) {
+                    dedup.put(key, new ElemRow(rs, upTime));
+                }
+            }
+        }
+        System.out.println("  源元件 " + raw + " 条，去重后 " + dedup.size() + " 条");
+
+        int cnt = 0;
+        try (PreparedStatement ps = dst.prepareStatement(sql)) {
+            for (ElemRow row : dedup.values()) {
+                ResultSet rs = row.rs;
+                ps.setString(1, nextId());
+                ps.setString(2, rs.getString("c_screen_no"));          // c_canvas_code
+                ps.setString(3, rs.getString("c_elem_no"));            // c_elem_code
+                ps.setString(4, rs.getString("c_elem_cname"));         // c_elem_name
+                ps.setString(5, rs.getString("c_elem_ename"));         // c_elem_ename
+                ps.setString(6, rs.getString("c_contrl_type"));        // c_control_type
+                ps.setString(7, rs.getString("c_check_type"));
+                ps.setString(8, rs.getString("c_must_input_flag"));    // c_required_flag
+                ps.setString(9, rs.getString("c_read_only_flag"));     // c_readonly_flag
+                ps.setString(10, rs.getString("c_view_show_flag"));    // c_visible_flag
+                ps.setString(11, rs.getString("c_default_value"));
+                ps.setString(12, rs.getString("c_status"));            // c_enabled_flag
+                ps.setObject(13, toInt(rs, "n_mini_value"));           // c_min_value
+                ps.setObject(14, toInt(rs, "n_maxi_value"));           // c_max_value
+                ps.setObject(15, toInt(rs, "n_precision_val"));        // c_precision
+                ps.setString(16, rs.getString("c_codelist_id"));       // c_code_list_name
+                ps.setObject(17, toInt(rs, "n_string_length"));        // n_string_length
+                ps.setString(18, rs.getString("c_click_event_func"));
+                ps.setString(19, rs.getString("c_comp_code"));
+                ps.setObject(20, rs.getObject("n_elem_show_seq_no"));  // n_elem_show_seq
+                ps.setString(21, rs.getString("c_rel_field_name"));
+                ps.setString(22, rs.getString("c_rel_table_name"));
+                ps.setString(23, rs.getString("c_contrl_attr"));       // c_control_attr
+                ps.setString(24, rs.getString("c_date_format"));
+                ps.setString(25, rs.getString("c_frontend_event_func")); // c_frontend_event
+                ps.setString(26, rs.getString("c_read_only_var"));     // c_readonly_var
+                ps.setString(27, rs.getString("c_valid_item_contrl_attr")); // c_valid_control_attr
+                ps.setString(28, rs.getString("c_group_flag"));
+                ps.setString(29, rs.getString("c_group_first_item"));
+                ps.setString(30, rs.getString("c_clnt_group"));        // c_client_group
+                ps.setString(31, rs.getString("c_default_dropdown_flag")); // c_auto_select_first
+                ps.setString(32, rs.getString("c_title"));             // c_tooltip_title
+                ps.setString(33, rs.getString("c_search_url"));
+                ps.setString(34, rs.getString("c_search_param_key"));
+                ps.setString(35, rs.getString("c_search_result_key"));
+                ps.setString(36, rs.getString("c_search_select_event"));
+                ps.setString(37, SYSTEM_CODE);
+                ps.setString(38, null); // c_template_code：元件无模板维度
+                ps.setString(39, rs.getString("c_crtr_code"));
+                ps.setString(40, rs.getString("c_uptr_code"));
+                ps.setString(41, rs.getString("d_crtr_time"));
+                ps.setString(42, rs.getString("d_uptr_time"));
+                ps.addBatch();
+                cnt++;
+                if (cnt % 5000 == 0) {
+                    ps.executeBatch();
+                    System.out.println("    已同步元件 " + cnt + " 条");
+                }
+            }
+            ps.executeBatch();
+        }
+        return cnt;
+    }
+
+    // 持有去重后的元件行
+    private static class ElemRow {
+        final ResultSet rs;
+        final String upTime;
+        ElemRow(ResultSet rs, String upTime) {
+            this.rs = rs;
+            this.upTime = upTime;
+        }
+    }
+
+    // ---------- 属性 ----------
+
+    private static int syncConfig(Connection src, Connection dst) throws Exception {
+        String sql = "INSERT INTO tb_canvas_config "
+                + "(c_pk_id, c_canvas_code, c_canvas_name, c_canvas_ename, c_canvas_type, n_columns, "
+                + "c_buttons_layout, c_modify_func, c_calc_envelop_func, c_save_envelop_func, c_query_envelop_func, "
+                + "c_add_event_func, c_delete_event_func, c_create_event_func, c_verify_valid_func, "
+                + "c_add_control_attr, c_delete_control_attr, c_oprt_type, c_oprt_button, c_comp_flag, "
+                + "c_sql_searchsql, c_sql_insertsql, c_table_default_info, c_system_code, c_template_code, "
+                + "c_crtr_code, c_uptr_code, d_crtr_time, d_uptr_time) "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        int cnt = 0;
+        try (Statement st = src.createStatement();
+             ResultSet rs = st.executeQuery("SELECT * FROM tb_prod_screen_prop");
+             PreparedStatement ps = dst.prepareStatement(sql)) {
+            while (rs.next()) {
+                ps.setString(1, nextId());
+                ps.setString(2, rs.getString("c_screen_no"));          // c_canvas_code
+                ps.setString(3, rs.getString("c_screen_cname"));       // c_canvas_name
+                ps.setString(4, rs.getString("c_screen_ename"));       // c_canvas_ename
+                ps.setString(5, rs.getString("c_screen_type"));        // c_canvas_type (form/table)
+                ps.setObject(6, rs.getObject("n_columns"));            // n_columns
+                ps.setString(7, rs.getString("c_btn_layout"));         // c_buttons_layout
+                ps.setString(8, rs.getString("c_modify_func"));
+                ps.setString(9, rs.getString("c_calc_func"));          // c_calc_envelop_func
+                ps.setString(10, rs.getString("c_save_func"));         // c_save_envelop_func
+                ps.setString(11, rs.getString("c_query_envelop_func"));
+                ps.setString(12, rs.getString("c_add_event_func"));
+                ps.setString(13, rs.getString("c_delete_event_func"));
+                ps.setString(14, rs.getString("c_create_event_func"));
+                ps.setString(15, rs.getString("c_verify_valid_func"));
+                ps.setString(16, rs.getString("c_add_button_attr"));   // c_add_control_attr
+                ps.setString(17, rs.getString("c_delete_button_attr"));// c_delete_control_attr
+                ps.setString(18, rs.getString("c_oprt_type"));
+                ps.setString(19, rs.getString("c_oprt_button"));
+                ps.setString(20, rs.getString("c_comp_flag"));
+                ps.setString(21, rs.getString("c_sql_query"));         // c_sql_searchsql
+                ps.setString(22, rs.getString("c_sql_insert"));        // c_sql_insertsql
+                ps.setString(23, rs.getString("c_table_default_info"));
+                ps.setString(24, SYSTEM_CODE);
+                ps.setString(25, null); // c_template_code
+                ps.setString(26, rs.getString("c_crtr_code"));
+                ps.setString(27, rs.getString("c_uptr_code"));
+                ps.setString(28, rs.getString("d_crtr_time"));
+                ps.setString(29, rs.getString("d_uptr_time"));
+                ps.addBatch();
+                cnt++;
+                if (cnt % 5000 == 0) {
+                    ps.executeBatch();
+                    System.out.println("    已同步属性 " + cnt + " 条");
+                }
+            }
+            ps.executeBatch();
+        }
+        return cnt;
+    }
+
+    // ---------- 核对 ----------
+
+    private static void verify(Connection dst, Connection src) throws Exception {
+        try (Statement s = dst.createStatement()) {
+            printCount(s, "tb_canvas");
+            printCount(s, "tb_canvas_element");
+            printCount(s, "tb_canvas_config");
+            printCount(s, "tb_page_template");
+            printCount(s, "tb_canvas_button");
+            printCount(s, "tb_element_group");
+            printCount(s, "tb_element_group_item");
+            printCount(s, "tb_canvas_publish");
+        }
+
+        // 抽样：取一个 c_screen_no，对比源/目标元件数
+        String sampleScreen = null;
+        try (Statement ss = src.createStatement();
+             ResultSet rs = ss.executeQuery("SELECT c_screen_no FROM tb_prod_rel_screen LIMIT 1")) {
+            if (rs.next()) sampleScreen = rs.getString("c_screen_no");
+        }
+        if (sampleScreen != null) {
+            long srcCnt = count(src, "tb_prod_screen_rel_elem", "c_screen_no = '" + sampleScreen + "'");
+            long dstCnt = count(dst, "tb_canvas_element", "c_canvas_code = '" + sampleScreen + "'");
+            System.out.println("  抽样画面 " + sampleScreen + "：源元件 " + srcCnt + " 条 / 目标元件 " + dstCnt + " 条");
+        }
+    }
+
+    private static void printCount(Statement s, String table) throws Exception {
+        try (ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM " + table)) {
+            rs.next();
+            System.out.println("  " + table + " = " + rs.getLong(1));
+        }
+    }
+
+    private static long count(Connection c, String table, String where) throws Exception {
+        try (Statement s = c.createStatement();
+             ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM " + table + " WHERE " + where)) {
+            rs.next();
+            return rs.getLong(1);
+        }
+    }
+
+    // decimal/int 转 Integer，NULL 返回 null
+    private static Integer toInt(ResultSet rs, String col) throws Exception {
+        Object v = rs.getObject(col);
+        if (v == null) return null;
+        if (v instanceof Number) return ((Number) v).intValue();
+        return Integer.valueOf(v.toString());
+    }
+}
