@@ -35,7 +35,7 @@ export default function TabBar() {
               }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <Icon name={named ? 'canvases' : 'designer'} size={12}
-                  style={{ color: active ? '#5d9cec' : '#94a3b8' }} />
+                  style={{ color: '#94a3b8' }} />
                 <span style={{
                   maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
@@ -85,9 +85,7 @@ const tabStyle = {
 };
 
 const tabActive = {
-  background: '#ffffff', color: '#334155',
-  borderColor: '#e8ecf1', fontWeight: 600,
-  boxShadow: '0 -1px 0 #e8ecf1',
+  background: '#ffffff',
 };
 
 const savedDot = {

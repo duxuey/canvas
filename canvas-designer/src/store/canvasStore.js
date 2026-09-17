@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { getDefaults } from '../utils/elementDefaults';
 
 let nextId = 1;
-let nextTabId = 1;
+// 初始标签固定为 id 1，故新标签从 2 开始，避免 id 冲突导致多个标签同时被判为「选中」
+let nextTabId = 2;
 
 /** 组成一个「画布」状态的字段 —— 用于多标签快照 */
 const CANVAS_FIELDS = [
