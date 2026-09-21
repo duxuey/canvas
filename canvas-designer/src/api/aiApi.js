@@ -272,6 +272,32 @@ const CANVAS_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'update_plan',
+      description:
+        '声明或更新当前任务的执行计划。任务需要多步（大约 3 步以上）才能完成时，'
+        + '先规划再动手；每完成一步就再调用一次，把 done 往前推。'
+        + '单步任务不需要用它。',
+      parameters: {
+        type: 'object',
+        properties: {
+          goal: { type: 'string', description: '这次任务要达成的一句话目标' },
+          steps: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '有序的步骤清单，每条是一句能判断完成与否的话',
+          },
+          done: {
+            type: 'integer',
+            description: '已完成的步骤数，即 steps 里前几条已完成。刚开始规划时填 0',
+          },
+        },
+        required: ['goal', 'steps'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'previewCanvas',
       description: '切换到画布预览视图。当用户说"预览/预览该画布/查看效果"时，必须调用此工具来实际打开预览页面，严禁仅用文字回复而不调用工具。',
       parameters: { type: 'object', properties: {} },
@@ -636,7 +662,38 @@ const PAGE_GEN_TOOLS = [
 // ============================================================
 // SYSTEM PROMPT
 // ============================================================
-function buildSystemPrompt(canvasState) {
+/**
+ * 量一下画布状态各部分占多少字符。
+ *
+ * 为什么要单独量：整个 canvasState 会被 stringify 进 system prompt，
+ * 而且每轮 LLM 调用都重发一次。之前只知道总量很大（trace 里看得到
+ * input_tokens 约 28 万），但不知道是哪一段占的——items 是全量、
+ * 其余几个是摘要，不量就没法判断该动哪里。
+ *
+ * 注意：这个值只反映字符数，不等同于 token（中英混排差异大），
+ * 但用来比较各部分之间的相对大小足够了。
+ */
+export function measureCanvasState(canvasState) {
+  // 空段算 0 而不是 4——JSON.stringify(null) 是 "null"（4 字符），
+  // 如果照算，一个没有 buttons 的画布会显示"buttons 占 20%"这种假数据
+  const size = (v) => {
+    if (v == null) return 0;
+    try { return JSON.stringify(v).length; } catch { return 0; }
+  };
+  const parts = {
+    containers: size(canvasState?.containers),
+    elements: size(canvasState?.elements),
+    blocks: size(canvasState?.blocks),
+    items: size(canvasState?.items),
+    buttons: size(canvasState?.buttons),
+  };
+  const total = Object.values(parts).reduce((a, b) => a + b, 0);
+  return { parts, total, ratio: total ? Object.fromEntries(
+    Object.entries(parts).map(([k, v]) => [k, +(v / total * 100).toFixed(1)])
+  ) : {} };
+}
+
+export function buildSystemPrompt(canvasState) {
   return `你是一个低代码画布设计助手，既能操作当前画布，也能管理系统的其它模块（元件、组件、画布、模板、系统）。
 
 ## 当前画布状态
@@ -671,7 +728,27 @@ C. 其它模块操作（落库）：
 7a. 用户要求对画布功能块排序（如"把基本信息块移到最上面"、"把基本信息块移到 PML 块下面"）时，先从画布状态的 blocks 清单按名称查到相关块的 _id，再调用 reorderBlock（blockId=要移动的块，position=top/bottom/above/below，above/below 时还要 targetBlockId=参考块）。不要用 addElement 之类的新建操作替代排序
 8. 用户提到"元件/组件/画布/模板/系统"的增删查时，调用对应的 C 类工具；若用户只说"创建元件/创建组件"等但信息不全，可先用 query* 查询现状，再补全参数创建
 9. 执行完操作后，用中文简要回复做了什么
-10. 如果用户的请求无法通过已有工具完成，请解释原因并建议替代方案`;
+10. 如果用户的请求无法通过已有工具完成，请解释原因并建议替代方案
+11. **任务需要多步（大约 3 步以上）才能完成时，先用 update_plan 列出步骤再动手**，每完成一步更新一次 done。单步任务（如"把某字段设为必填"）不需要规划。
+    这不只是给别人看的：你的迭代次数有限，万一没做完，计划会留在对话里，用户说"继续"时你能知道还剩什么。所以宁可把步骤拆细一点。
+12. 如果这次确实没做完，在回复里说清楚：完成了哪几步、卡在哪一步、下一步该做什么`;
+}
+
+/**
+ * 把当前计划拼成一段提示词，附在系统提示词后面。
+ *
+ * 计划要注入（而聊天历史本来就带着）是因为：下一轮对话的历史里只有
+ * 助手回复的文本，没有工具调用的细节。用户说"继续"时，模型只能靠
+ * 这段计划知道还剩什么没做。
+ */
+export function formatPlanForPrompt(plan) {
+  if (!plan || !Array.isArray(plan.steps) || !plan.steps.length) return '';
+  const done = Math.max(0, Math.min(plan.done || 0, plan.steps.length));
+  if (done >= plan.steps.length) return '';   // 已完成的计划不必再提
+  const lines = plan.steps.map((s, i) => `- [${i < done ? 'x' : ' '}] ${s}`);
+  return `\n\n## 上一次未完成的计划\n目标：${plan.goal}\n${lines.join('\n')}\n`
+    + `用户如果要求继续，请从上面第一个未打勾的步骤接着做，并继续用 update_plan 更新进度。\n`
+    + `如果当前请求和这个计划无关，直接忽略它，并用 update_plan 覆盖成新任务的计划。`;
 }
 
 // ============================================================
@@ -684,22 +761,133 @@ C. 其它模块操作（落库）：
  * @param {object} canvasState
  * @param {object} [options] { toolChoice?: 'auto'|'required' }
  */
-export async function sendAiMessage(history, canvasState, options = {}) {
+// ============================================================
+// LLM 调用的重试
+//
+// 以前一次失败就整个请求报错，用户白等——而网络抖动、限流、网关 5xx
+// 都是"等一下就好"的类型。这里做指数退避重试。
+//
+// 三个要点：
+//   1. 错误分类。分错的代价不对称：把永久错误当可重试只是浪费时间，
+//      把临时错误当永久错误会让用户直接看到报错。
+//   2. 请求超时。没有超时的话，卡住的请求会一直挂着，
+//      重试根本没机会发生——重试救不了"永不返回"。
+//   3. 重试要可见。看不见的重试等于没有：你不知道失败率有多高，
+//      也不知道用户其实等了三次才成功。
+// ============================================================
+
+const MAX_LLM_ATTEMPTS = 3;        // 含首次，即最多重试 2 次
+const RETRY_BASE_DELAY_MS = 800;
+const RETRY_MAX_DELAY_MS = 5000;
+// 单次请求超时。画布类的 prompt 很大（可达百万字符），给得宽松些，
+// 但必须有个上限——否则网络挂起时请求永远不返回。
+const LLM_REQUEST_TIMEOUT_MS = 90000;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 区分「等一下就好」和「再试也没用」。 */
+function isRetryable(err) {
+  if (err && typeof err.status === 'number') {
+    return err.status === 429 || err.status >= 500;
+  }
+  // fetch 在网络层失败时抛 TypeError；超时由我们自己的 AbortController 触发
+  return err instanceof TypeError || (err && err.name === 'AbortError');
+}
+
+/** 服务端给了 Retry-After 就听它的，别自己拍脑袋退避。 */
+function retryAfterMs(err) {
+  const s = err && err.retryAfter;
+  if (typeof s === 'number' && s > 0) return Math.min(s * 1000, RETRY_MAX_DELAY_MS);
+  return null;
+}
+
+/**
+ * 带重试的 relay 请求。
+ * @param {object} body      请求体
+ * @param {Function} [onRetry] (info) => void，每次「将要重试」时调用
+ */
+async function relayWithRetry(body, onRetry) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= MAX_LLM_ATTEMPTS; attempt++) {
+    try {
+      return await relayOnce(body);
+    } catch (e) {
+      lastErr = e;
+      const retryable = isRetryable(e);
+      const lastTry = attempt >= MAX_LLM_ATTEMPTS;
+      if (!retryable || lastTry) {
+        if (onRetry) {
+          onRetry({ attempt, error: e, retryable, willRetry: false });
+        }
+        break;
+      }
+      const delayMs =
+        retryAfterMs(e) ?? Math.min(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), RETRY_MAX_DELAY_MS);
+      if (onRetry) {
+        onRetry({ attempt, error: e, retryable, willRetry: true, delayMs });
+      }
+      await sleep(delayMs);
+    }
+  }
+  throw lastErr;
+}
+
+/** 单次 relay 请求。失败时抛出的 Error 带 status / retryAfter，供上层分类。 */
+async function relayOnce(body) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), LLM_REQUEST_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch('/canvas-service/ai/relay', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Ai-Api-Key': AI_CONFIG.apiKey,
+        'X-Ai-Endpoint': AI_CONFIG.endpoint,
+        'X-Ai-Model': AI_CONFIG.model,
+      },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    // 超时被 abort 时，把它换成一个说得清楚的错误
+    if (e && e.name === 'AbortError') {
+      const t = new Error(`请求超时（${LLM_REQUEST_TIMEOUT_MS / 1000}s）`);
+      t.name = 'AbortError';
+      throw t;
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!res.ok) {
+    const errText = await res.text();
+    let errMsg = errText;
+    try {
+      const errJson = JSON.parse(errText);
+      errMsg = errJson.error?.message || errText;
+    } catch { /* 非 JSON 错误体，直接用原文 */ }
+    const e = new Error(`${res.status}: ${errMsg}`);
+    e.status = res.status;                       // 供 isRetryable 分类
+    const ra = res.headers.get('Retry-After');
+    if (ra && !Number.isNaN(Number(ra))) e.retryAfter = Number(ra);
+    throw e;
+  }
+  return res;
+}
+
+/**
+ * 单次 LLM 调用原语（多轮循环的底层）。
+ * 返回完整信息，其中 rawMessage 保留 tool_calls 结构，供多轮回填。
+ * 内部带指数退避重试；onRetry 用于把重试上报出去。
+ */
+export async function chatCompletion(messages, { toolChoice = 'auto', onRetry } = {}) {
   if (!AI_CONFIG.apiKey) {
     throw new Error('AI API key 未配置。请点击 ⚙ 按钮设置');
   }
   if (!AI_CONFIG.endpoint) {
     throw new Error('AI endpoint 未配置。请点击 ⚙ 按钮设置');
-  }
-
-  const systemPrompt = buildSystemPrompt(canvasState);
-
-  // Build messages in OpenAI format (system as a message role)
-  const messages = [
-    { role: 'system', content: systemPrompt },
-  ];
-  for (const msg of history) {
-    messages.push({ role: msg.role, content: msg.content });
   }
 
   const body = {
@@ -708,7 +896,7 @@ export async function sendAiMessage(history, canvasState, options = {}) {
     temperature: 0.1,
     messages,
     tools: CANVAS_TOOLS,
-    tool_choice: options.toolChoice || 'auto',
+    tool_choice: toolChoice,
   };
   const thinking = buildThinkingParam();
   if (thinking) body.thinking = thinking;
@@ -718,37 +906,18 @@ export async function sendAiMessage(history, canvasState, options = {}) {
   console.log('[AI API] Model:', AI_CONFIG.model);
 
   // Use backend relay to avoid CORS
-  const res = await fetch('/canvas-service/ai/relay', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Ai-Api-Key': AI_CONFIG.apiKey,
-      'X-Ai-Endpoint': AI_CONFIG.endpoint,
-      'X-Ai-Model': AI_CONFIG.model,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    let errMsg = errText;
-    try {
-      const errJson = JSON.parse(errText);
-      errMsg = errJson.error?.message || errText;
-    } catch {}
-    throw new Error(`${res.status}: ${errMsg}`);
-  }
+  const res = await relayWithRetry(body, onRetry);
 
   const data = await res.json();
 
   // Parse OpenAI-format response
   const choice = data.choices?.[0];
-  const msg = choice?.message || {};
-  const text = msg.content || '';
+  const rawMessage = choice?.message || {};
+  const text = rawMessage.content || '';
 
   // Extract tool calls (OpenAI format)
   const toolCalls = [];
-  for (const tc of msg.tool_calls || []) {
+  for (const tc of rawMessage.tool_calls || []) {
     if (tc.type === 'function') {
       let input = {};
       try { input = JSON.parse(tc.function.arguments); } catch {}
@@ -756,7 +925,199 @@ export async function sendAiMessage(history, canvasState, options = {}) {
     }
   }
 
-  return { text, toolCalls };
+  return {
+    text,
+    toolCalls,
+    rawMessage,
+    finishReason: choice?.finish_reason,
+    usage: {
+      input_tokens: data.usage?.prompt_tokens || 0,
+      output_tokens: data.usage?.completion_tokens || 0,
+    },
+  };
+}
+
+/**
+ * 兼容旧接口的单次调用封装：返回 { text, toolCalls }。
+ * （保留给可能的历史调用方；新逻辑请用 runAgentLoop。）
+ */
+export async function sendAiMessage(history, canvasState, options = {}) {
+  const messages = [
+    { role: 'system', content: buildSystemPrompt(canvasState) },
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+  ];
+  const r = await chatCompletion(messages, { toolChoice: options.toolChoice || 'auto' });
+  return { text: r.text, toolCalls: r.toolCalls };
+}
+
+/**
+ * 多轮 tool-use 循环：LLM 返回工具调用 → 本地执行 → 结果喂回 → 直到不再调工具。
+ *
+ * @param {Array} history         aiStore 里的 [{role, content}]（纯文本，不含 tool 消息）
+ * @param {Function} getContext   () => canvasState，每次迭代现取，避免画布状态陈旧
+ * @param {Function} buildSystem  (canvasState) => systemPrompt
+ * @param {string} toolChoice     'required' | 'auto'，仅首轮生效
+ * @param {Function} executeTools async (toolCalls) => string[]（对齐索引）
+ * @param {Function} onEvent      (ev) => eventId|null，埋点钩子
+ * @param {number} maxIterations  硬上限，防死循环
+ */
+export async function runAgentLoop({
+  history,
+  getContext,
+  buildSystem = buildSystemPrompt,
+  toolChoice = 'auto',
+  executeTools,
+  onEvent,
+  maxIterations = 8,
+}) {
+  const messages = [
+    { role: 'system', content: buildSystem(getContext()) },
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+  ];
+
+  let finalText = '';
+  let toolResults = [];
+  let iterations = 0;
+  let timedOut = false;
+  let inTok = 0;
+  let outTok = 0;
+  // 怎么结束的。与看板的 ended_by 同义（见 AI_project/app/tracer.py）：
+  //   text_response  模型不再请求工具，给出了文本
+  //   iteration_cap  跑满 maxIterations 仍未收尾
+  //   empty_output   既没调工具也没给内容
+  // 「模型不再调工具」只是循环的退出条件，不等于任务完成——
+  // 模型卡住、放弃、被上限截断都长这个样子。
+  let endedBy = null;
+
+  for (let iter = 1; iter <= maxIterations; iter++) {
+    iterations = iter;
+    // 每轮刷新画布上下文（工具执行后画布已变化）
+    messages[0].content = buildSystem(getContext());
+
+    const t0 = performance.now();
+    const r = await chatCompletion(messages, {
+      toolChoice: iter === 1 ? toolChoice : 'auto',
+      // 把重试上报到看板。事件名与 Python 侧（app/agent.py 的 llm_retry）一致，
+      // 看板已有的渲染逻辑直接复用。
+      onRetry: onEvent
+        ? ({ attempt, error, willRetry, delayMs, retryable }) => {
+            if (!willRetry) return;   // 放弃重试时让错误照常抛出，由上层统一处理
+            onEvent({
+              type: 'llm_retry',
+              name: `llm_retry #${attempt}: ${error.name || 'Error'}`,
+              output: { error: String(error.message || error).slice(0, 500) },
+              meta: { attempt, delay_ms: delayMs, retryable, source: 'canvas' },
+            });
+            onEvent({
+              type: 'log',
+              name: `${error.message || error}，${Math.round(delayMs / 1000)}s 后第 ${attempt + 1} 次尝试`,
+              meta: { level: 'warn' },
+            });
+          }
+        : undefined,
+    });
+    const latencyMs = Math.round(performance.now() - t0);
+    inTok += r.usage.input_tokens;
+    outTok += r.usage.output_tokens;
+
+    const llmCallId = onEvent
+      ? onEvent({
+          type: 'llm_call',
+          name: `llm_call #${iter}`,
+          input: messages,
+          meta: {
+            model: AI_CONFIG.model,
+            iteration: iter,
+            tool_choice: iter === 1 ? toolChoice : 'auto',
+          },
+        })
+      : null;
+
+    // 追加 assistant 消息（保留 tool_calls 结构，content 为 null 时省略）
+    const assistantMsg = { role: 'assistant' };
+    if (r.rawMessage.content != null) assistantMsg.content = r.rawMessage.content;
+    if (r.toolCalls.length) assistantMsg.tool_calls = r.rawMessage.tool_calls;
+    messages.push(assistantMsg);
+
+    if (onEvent) {
+      onEvent({
+        type: 'llm_response',
+        name: `llm_response #${iter}`,
+        parentId: llmCallId,
+        output: { content: r.text, tool_calls: r.toolCalls },
+        meta: {
+          input_tokens: r.usage.input_tokens,
+          output_tokens: r.usage.output_tokens,
+          latency_ms: latencyMs,
+          finish_reason: r.finishReason,
+        },
+      });
+    }
+
+    // 终止条件：模型不再请求工具
+    if (r.toolCalls.length === 0) {
+      finalText = r.text;
+      endedBy = finalText && finalText.trim() ? 'text_response' : 'empty_output';
+      break;
+    }
+
+    // 埋点 tool_call（父=llm_call）→ 执行 → 埋点 tool_result（父=tool_call）→ 回喂
+    const callEvIds = r.toolCalls.map((tc) =>
+      onEvent
+        ? onEvent({
+            type: 'tool_call',
+            name: `tool_call: ${tc.name}`,
+            parentId: llmCallId,
+            input: tc.input,
+            meta: { tool_call_id: tc.id },
+          })
+        : null,
+    );
+
+    const results = await executeTools(r.toolCalls);
+
+    r.toolCalls.forEach((tc, i) => {
+      if (onEvent) {
+        onEvent({
+          type: 'tool_result',
+          name: `tool_result: ${tc.name}`,
+          parentId: callEvIds[i],
+          output: results[i],
+        });
+      }
+      messages.push({
+        role: 'tool',
+        tool_call_id: tc.id,
+        content: typeof results[i] === 'string' ? results[i] : JSON.stringify(results[i]),
+      });
+    });
+
+    toolResults = toolResults.concat(results);
+  }
+
+  // 循环自然跑完（没 break）＝ 跑满上限仍未收尾。
+  // endedBy 仍是 null 就是这种情况——不要把它当成正常结束。
+  if (!endedBy) {
+    endedBy = 'iteration_cap';
+    timedOut = true;
+  }
+  if (endedBy === 'iteration_cap' && onEvent) {
+    onEvent({
+      type: 'log',
+      name: `达到最大迭代次数 ${maxIterations} 仍未完成，已强制终止`,
+      meta: { level: 'warn' },
+    });
+  }
+
+  return {
+    text: finalText,
+    toolResults,
+    iterations,
+    timedOut,
+    endedBy,          // 调用方据此决定怎么向用户交代
+    inputTokens: inTok,
+    outputTokens: outTok,
+  };
 }
 
 // ============================================================

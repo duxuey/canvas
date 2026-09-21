@@ -1,3 +1,4 @@
+import { useAiStore } from '../../store/aiStore';
 import { useCanvasStore } from '../../store/canvasStore';
 import { useUiStore } from '../../store/uiStore';
 import { useSystemStore } from '../../store/systemStore';
@@ -8,18 +9,101 @@ import { elementGroupApi } from '../../api/elementGroupApi';
 import { pageTemplateApi } from '../../api/pageTemplateApi';
 
 /**
+ * 需要人工确认的工具：不可逆、且影响当前画布之外（上生产 / 删除）。
+ *
+ * 为什么只拦这几个：日常编辑（addElement / updateElement / saveCanvas）
+ * 改错了当场就能看见、也能再改回来，每次都拦只会让人习惯性点"允许"——
+ * 那样审批就变成走过场，反而比不拦更危险（给人一种有保护伞的错觉）。
+ * 真正该拦的是"点错了收不回来"的那些。
+ */
+export const APPROVAL_REQUIRED_TOOLS = new Set([
+  'publishCanvas',
+  'syncToProd',
+  'deleteCanvas',
+  'deleteElementDef',
+  'deleteComponent',
+  'deleteTemplate',
+  'deleteSystem',
+]);
+
+/** 给人看的一句话说明，显示在确认卡片上。 */
+export const APPROVAL_HINTS = {
+  publishCanvas: '发布画布 —— 发布后对外可见',
+  syncToProd: '同步到产品工厂 —— 会影响生产环境',
+  deleteCanvas: '删除画布 —— 不可恢复',
+  deleteElementDef: '删除元件定义 —— 不可恢复',
+  deleteComponent: '删除组件 —— 不可恢复',
+  deleteTemplate: '删除模板 —— 不可恢复',
+  deleteSystem: '删除系统 —— 不可恢复',
+};
+
+export function requiresApproval(name) {
+  return APPROVAL_REQUIRED_TOOLS.has(name);
+}
+
+/**
  * Execute AI tool calls against the canvas store and backend APIs.
  * 支持两类操作：
  *   - 同步画布操作（改内存 canvas store，不落库）
  *   - 异步后端操作（元件/组件/画布/模板/系统等模块，直接落库）
+ *
+ * @param {Array} toolCalls
+ * @param {object} [opts]
+ * @param {Function} [opts.requestApproval] async (call, hint) => boolean，
+ *        返回 true 表示用户放行。不传则不启用人工闸门。
+ * @param {Function} [opts.onEvent] 埋点钩子，用于上报审批事件
  * Returns a Promise resolving to an array of result strings.
  */
-export async function executeToolCalls(toolCalls) {
+export async function executeToolCalls(toolCalls, { requestApproval, onEvent } = {}) {
   const store = useCanvasStore.getState();
   const ui = useUiStore.getState();
   const results = [];
 
   for (const call of toolCalls) {
+    // 人工闸门：模型请求之后、真正执行之前
+    if (requiresApproval(call.name) && requestApproval) {
+      const approvalId = `ap_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+      const hint = APPROVAL_HINTS[call.name] || call.name;
+      const reqEvId = onEvent
+        ? onEvent({
+            type: 'approval_request',
+            name: `approval_request: ${call.name}`,
+            input: { tool: call.name, arguments: call.input, description: hint },
+            meta: { approval_id: approvalId, source: 'canvas' },
+          })
+        : null;
+
+      let approved = false;
+      try {
+        approved = await requestApproval(call, hint);
+      } catch {
+        // 确认环节自身出错（比如 UI 崩了）。approved 保持 false，
+        // 也就是按拒绝处理——宁可拦下，也不要因为出错就放行。
+      }
+
+      // 决策挂在请求之下（parentId），与 Python 侧一致：
+      // 这样看板上点开决策节点能顺着 parent 链看到当时要批准的内容
+      if (onEvent) {
+        onEvent({
+          type: 'approval_decision',
+          name: `approval_decision: ${approved ? 'approved' : 'rejected'}`,
+          parentId: reqEvId,
+          output: { approved, decided_by: 'human' },
+          meta: { approval_id: approvalId, source: 'canvas' },
+        });
+      }
+
+      if (!approved) {
+        // 拒绝当作观察回灌给模型，让它自己调整——和工具报错是同一套机制。
+        // 必须明说"不要重试"，否则模型很可能原样再问一次。
+        results.push(
+          `⛔ 用户拒绝执行 ${call.name}。`
+          + `不要重复请求同一个操作，请直接说明情况或改用其它方式。`
+        );
+        continue;
+      }
+    }
+
     try {
       const result = await executeOne(call.name, call.input, store, ui);
       results.push(result);
@@ -33,6 +117,26 @@ export async function executeToolCalls(toolCalls) {
 
 async function executeOne(name, input, store, ui) {
   switch (name) {
+    // ================================================================
+    // update_plan —— 不碰画布，只记录进度
+    // ================================================================
+    case 'update_plan': {
+      const goal = String(input?.goal || '').trim();
+      const steps = (input?.steps || []).map((s) => String(s).trim()).filter(Boolean);
+      if (!goal || !steps.length) {
+        return '❌ update_plan 需要 goal 和至少一条 steps';
+      }
+      const done = Math.max(0, Math.min(Number(input?.done) || 0, steps.length));
+      useAiStore.getState().setPlan({ goal, steps, done });
+
+      const remaining = steps.slice(done);
+      return `📋 已更新计划：${goal}（${done}/${steps.length} 步）`
+        + (remaining.length
+          ? `\n剩余：${remaining.map((s, i) => `${done + i + 1}. ${s}`).join('；')}`
+          : '\n全部步骤已完成');
+    }
+
+
     // ================================================================
     // addElement
     // ================================================================

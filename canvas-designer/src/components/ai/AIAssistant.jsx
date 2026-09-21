@@ -2,21 +2,56 @@ import { useState, useRef, useEffect } from 'react';
 import { useAiStore } from '../../store/aiStore';
 import { useCanvasStore } from '../../store/canvasStore';
 import { useUiStore } from '../../store/uiStore';
-import { sendAiMessage, setAiConfig, getAiConfig, switchProvider, getProviders } from '../../api/aiApi';
+import {
+  runAgentLoop, buildSystemPrompt, formatPlanForPrompt, measureCanvasState,
+  setAiConfig, getAiConfig, switchProvider, getProviders,
+} from '../../api/aiApi';
+import { createTraceClient } from '../../api/traceClient';
 import { executeToolCalls } from './AIActionHandler';
 import Icon from '../common/Icon';
 
 export default function AIAssistant() {
   const ai = useAiStore();
-  const canvasStore = useCanvasStore();
   const ui = useUiStore();
   const [input, setInput] = useState('');
   const [apiKeyDialog, setApiKeyDialog] = useState(false);
   const [pos, setPos] = useState(null); // 拖拽后的 {x, y}，null 表示默认停靠右下角
+  const [pendingApproval, setPendingApproval] = useState(null); // { call, hint }
+  const approvalResolverRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const panelRef = useRef(null);
   const dragRef = useRef(null);
+
+  /**
+   * 暂停 agent 循环，等用户在界面上点确认。
+   *
+   * 与看板那套审批的区别：这里的 resolver 活在前端内存里，没有超时，
+   * 也不需要轮询——用户就在同一个界面前，点完 resolve 即继续。
+   * 面板被关掉、对话被重置时也要放行（按拒绝处理），
+   * 否则 Promise 永远挂着，本轮对话就卡死了。
+   */
+  const requestApproval = (call, hint) =>
+    new Promise((resolve) => {
+      approvalResolverRef.current = resolve;
+      setPendingApproval({ call, hint });
+    });
+
+  const decideApproval = (approved) => {
+    const resolve = approvalResolverRef.current;
+    approvalResolverRef.current = null;
+    setPendingApproval(null);
+    if (resolve) resolve(approved);
+  };
+
+  /** 兜底放行（按拒绝）：关面板、重置对话时用，避免 Promise 永远挂着。 */
+  const releasePendingApproval = () => {
+    const resolve = approvalResolverRef.current;
+    if (!resolve) return;
+    approvalResolverRef.current = null;
+    setPendingApproval(null);
+    resolve(false);
+  };
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -28,6 +63,15 @@ export default function AIAssistant() {
     if (ai.panelOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
+  }, [ai.panelOpen]);
+
+  // 面板被关掉时若还挂着待确认，必须放行（按拒绝）。
+  // 否则那个 Promise 永远不 resolve，agent 循环卡死，
+  // 用户再打开面板发消息也没有反应。
+  useEffect(() => {
+    if (ai.panelOpen) return;
+    releasePendingApproval();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ai.panelOpen]);
 
   // ── 拖拽：按住面板头部移动 ──
@@ -57,60 +101,86 @@ export default function AIAssistant() {
     ai.setLoading(true);
     ai.clearError();
 
+    const trace = createTraceClient();
     try {
-      // Build canvas state for context
-      const canvasState = {
-        canvasName: canvasStore.canvasName,
-        canvasType: canvasStore.canvasType,
-        columns: canvasStore.columns,
-        pageCode: canvasStore.pageCode,
-        systemCode: canvasStore.systemCode,
-        // 容器层级摘要 —— 便于 AI 定位区块/组件/标签页
-        containers: summarizeContainers(canvasStore.items),
-        // 元素清单 —— 便于 AI 按名称定位已有元素（改必填、改名等）
-        elements: summarizeElements(canvasStore.items),
-        // 顶层功能块清单（按顺序）—— 便于 AI 按名称定位并排序
-        blocks: summarizeBlocks(canvasStore.items),
-        items: canvasStore.items.map((item) => {
-          const { _rowIdx, _colIdx, ...rest } = item;
-          return rest;
-        }),
-        buttons: canvasStore.buttons,
-      };
-
-      // Send to AI. 必须读取 store 的最新状态：此闭包里的 ai.messages 是
+      const model = getAiConfig().model;
+      // 必须读取 store 的最新状态：此闭包里的 ai.messages 是
       // addMessage 之前的旧快照，直接使用会漏掉当前这条用户消息。
       const history = useAiStore.getState().messages.map((m) => ({ role: m.role, content: m.content }));
-      // 动作意图 → 强制模型至少调用一次工具（tool_choice: required），避免只回文字不执行
-      const result = await sendAiMessage(history, canvasState, {
-        toolChoice: hasActionIntent(text) ? 'required' : 'auto',
+
+      trace.startRun({ task: text, model });
+
+      // 开局量一次画布状态的构成，上报到看板。
+      // 整个 state 每轮都会重发，体积直接决定成本和延迟——
+      // 但只有量过才知道该动哪一段（items 是全量，其余是摘要）。
+      const comp = measureCanvasState(buildCanvasState());
+      trace.emit({
+        type: 'log',
+        name: `画布状态体积 ${(comp.total / 1000).toFixed(0)}k 字符 —— `
+          + Object.entries(comp.parts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([k, v]) => `${k} ${(v / 1000).toFixed(0)}k(${comp.ratio[k]}%)`)
+            .join('、'),
+        meta: { level: 'info', canvas_state_composition: comp },
       });
 
-      // 执行工具调用；若模型未返回任何工具调用，则走本地关键词兜底
-      let toolCalls = result.toolCalls;
-      if (toolCalls.length === 0) {
-        toolCalls = detectLocalActions(text);
-      }
-      let toolResults = [];
-      if (toolCalls.length > 0) {
-        toolResults = await executeToolCalls(toolCalls);
+      // 多轮 tool-use 循环；动作意图 → 首轮强制工具（tool_choice: required）
+      const result = await runAgentLoop({
+        history,
+        getContext: () => buildCanvasState(),
+        // 把上一轮没做完的计划附在系统提示词后面：
+        // 对话历史里只有助手回复的文本、没有工具调用细节，
+        // 用户说"继续"时模型得靠这段计划知道还剩什么
+        buildSystem: (s) =>
+          buildSystemPrompt(s) + formatPlanForPrompt(useAiStore.getState().plan),
+        toolChoice: hasActionIntent(text) ? 'required' : 'auto',
+        // 人工闸门只对"不可逆且影响外部"的工具生效（见 AIActionHandler），
+        // 日常编辑不拦——每次都拦只会让人习惯性点允许
+        executeTools: (toolCalls) =>
+          executeToolCalls(toolCalls, {
+            requestApproval,
+            onEvent: (ev) => trace.emit(ev),
+          }),
+        onEvent: (ev) => trace.emit(ev),
+        maxIterations: 8,
+      });
+
+      // 本地关键词兜底（模型全程零工具调用时沿用旧逻辑）
+      let extra = [];
+      if (result.toolResults.length === 0) {
+        const local = detectLocalActions(text);
+        if (local.length) extra = await executeToolCalls(local);
       }
 
       // Build assistant reply
-      let reply = '';
-      if (result.text) {
-        reply = result.text;
-      }
-      if (toolResults.length > 0) {
-        reply += (reply ? '\n\n' : '') + toolResults.join('\n');
-      }
-      if (!reply) {
-        reply = '✅ 操作已完成';
+      const allResults = [...result.toolResults, ...extra];
+      let reply = result.text || '';
+      if (allResults.length) reply += (reply ? '\n\n' : '') + allResults.join('\n');
+
+      // 没做完的时候必须如实说，不能兜底成「已完成」。
+      // 旧逻辑在 finalText 为空时直接拼「✅ 操作已完成」，而 finalText 为空
+      // 恰恰最常见的原因就是跑满了迭代上限——用户会以为事情办好了。
+      const unfinished = result.endedBy === 'iteration_cap' || result.endedBy === 'empty_output';
+      if (!reply && !unfinished) reply = '✅ 操作已完成';
+      if (unfinished) {
+        const why = result.endedBy === 'iteration_cap'
+          ? `已经尝试 ${result.iterations} 轮仍未完成`
+          : '没有产生任何结论';
+        const done = allResults.length ? `\n\n中途已执行：\n${allResults.join('\n')}` : '';
+        reply = `⚠️ 这次没有完成任务（${why}）。${done}\n\n请把需求拆得更具体一些，或者补充必要的上下文，我再试一次。`;
       }
 
+      trace.finish({
+        finalOutput: reply,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        // 把结束方式一并上报，看板上才不会把「没做完」显示成绿色的「已完成」
+        endedBy: result.endedBy,
+      });
       ai.addMessage({ role: 'assistant', content: reply });
     } catch (e) {
       const errMsg = e.message || '未知错误';
+      trace.finish({ error: errMsg });
       ai.setError(errMsg);
       ai.addMessage({
         role: 'assistant',
@@ -153,7 +223,11 @@ export default function AIAssistant() {
         <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
           <button onClick={() => setApiKeyDialog(true)} className="hb-ai-header-btn" title="设置 API Key"><Icon name="settings" size={15} /></button>
           <button
-            onClick={() => { ai.clearMessages(); ui.addToast('对话已重置，AI 已加载最新工具', 'info'); }}
+            onClick={() => {
+              releasePendingApproval();   // 重置对话同理：不能留下挂着的确认
+              ai.clearMessages();
+              ui.addToast('对话已重置，AI 已加载最新工具', 'info');
+            }}
             className="hb-ai-header-btn" title="清除对话"><Icon name="trash" size={15} /></button>
           <button onClick={ai.closePanel} className="hb-ai-header-btn" title="关闭"><Icon name="close" size={16} /></button>
         </div>
@@ -208,6 +282,51 @@ export default function AIAssistant() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* 计划卡片：只展示不阻断，用户看着 AI 一步步做，随时可以打断 */}
+      {ai.plan && ai.plan.done < ai.plan.steps.length && (
+        <div style={planCardStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#1e40af' }}>
+            <Icon name="list" size={13} />
+            {ai.plan.goal}
+            <span style={{ marginLeft: 'auto', fontWeight: 400, color: '#64748b' }}>
+              {ai.plan.done}/{ai.plan.steps.length}
+            </span>
+          </div>
+          <ol style={planListStyle}>
+            {ai.plan.steps.map((s, i) => (
+              <li key={i} style={{
+                color: i < ai.plan.done ? '#94a3b8' : '#334155',
+                textDecoration: i < ai.plan.done ? 'line-through' : 'none',
+              }}>
+                {s}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* 待确认卡片：agent 已暂停，等用户放行 */}
+      {pendingApproval && (
+        <div style={approvalCardStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#b45309', fontWeight: 600, fontSize: 12 }}>
+            <Icon name="alert" size={14} />
+            需要你确认后才会执行
+          </div>
+          <div style={{ marginTop: 6, fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
+            {pendingApproval.hint}
+          </div>
+          <div style={approvalArgsStyle}>
+            <code style={{ fontSize: 11, wordBreak: 'break-all' }}>
+              {pendingApproval.call.name}({formatArgs(pendingApproval.call.input)})
+            </code>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+            <button onClick={() => decideApproval(false)} style={secondaryBtnStyle}>拒绝</button>
+            <button onClick={() => decideApproval(true)} style={primaryBtnStyle}>允许执行</button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <div style={inputAreaStyle}>
         <textarea
@@ -232,6 +351,18 @@ export default function AIAssistant() {
       {apiKeyDialog && <ApiKeyDialog onClose={() => setApiKeyDialog(false)} />}
     </div>
   );
+}
+
+/** 把工具入参压成一行显示在确认卡片上，太长就截断。 */
+function formatArgs(input) {
+  if (input == null) return '';
+  let s;
+  try {
+    s = typeof input === 'string' ? input : JSON.stringify(input);
+  } catch {
+    s = String(input);
+  }
+  return s.length > 200 ? s.slice(0, 200) + '…' : s;
 }
 
 /**
@@ -345,6 +476,29 @@ function summarizeBlocks(items) {
     }
   });
   return out;
+}
+
+/** 构建当前画布状态快照（每次现取 store 最新状态，供多轮循环每轮刷新上下文）。 */
+function buildCanvasState() {
+  const canvasStore = useCanvasStore.getState();
+  return {
+    canvasName: canvasStore.canvasName,
+    canvasType: canvasStore.canvasType,
+    columns: canvasStore.columns,
+    pageCode: canvasStore.pageCode,
+    systemCode: canvasStore.systemCode,
+    // 容器层级摘要 —— 便于 AI 定位区块/组件/标签页
+    containers: summarizeContainers(canvasStore.items),
+    // 元素清单 —— 便于 AI 按名称定位已有元素（改必填、改名等）
+    elements: summarizeElements(canvasStore.items),
+    // 顶层功能块清单（按顺序）—— 便于 AI 按名称定位并排序
+    blocks: summarizeBlocks(canvasStore.items),
+    items: canvasStore.items.map((item) => {
+      const { _rowIdx, _colIdx, ...rest } = item;
+      return rest;
+    }),
+    buttons: canvasStore.buttons,
+  };
 }
 
 /** 判断用户文本是否含「动作」意图（用于决定 tool_choice 是否强制 required）。 */
@@ -640,6 +794,50 @@ const inputAreaStyle = {
   borderTop: '1px solid #eef2f7',
   background: '#ffffff',
   flexShrink: 0,
+};
+
+// 计划卡片。和待确认卡片一样固定在输入框上方：
+// 它在整轮任务执行期间都要可见，混进消息流会被新消息顶走。
+const planCardStyle = {
+  margin: '0 16px 8px',
+  padding: '9px 12px',
+  border: '1px solid #bfdbfe',
+  borderRadius: 10,
+  background: '#eff6ff',
+  flexShrink: 0,
+  maxHeight: 168,
+  overflow: 'auto',
+};
+
+const planListStyle = {
+  margin: '6px 0 0',
+  paddingLeft: 18,
+  fontSize: 12,
+  lineHeight: 1.6,
+};
+
+// 待确认卡片。固定在输入框上方（而不是混进消息流里）——
+// 此刻 agent 是停住的，提示必须无法被忽略：消息流可以往上滚，
+// 滚上去就看不见了，那这次对话就悄悄卡死了。
+const approvalCardStyle = {
+  margin: '0 16px 4px',
+  padding: '10px 12px',
+  border: '1px solid #fcd34d',
+  borderRadius: 10,
+  background: '#fffbeb',
+  flexShrink: 0,
+};
+
+const approvalArgsStyle = {
+  marginTop: 8,
+  padding: '6px 8px',
+  borderRadius: 6,
+  background: 'rgba(255,255,255,.75)',
+  border: '1px solid #fde68a',
+  color: '#78350f',
+  fontFamily: 'var(--mono, monospace)',
+  maxHeight: 90,
+  overflow: 'auto',
 };
 
 const textAreaStyle = {
