@@ -669,7 +669,7 @@ function ApiKeyDialog({ onClose }) {
         ) : (
           <input value={config.model}
             onChange={(e) => setConfig({ ...config, model: e.target.value })}
-            placeholder="deepseek-chat"
+            placeholder="deepseek-v4-flash"
             style={inputStyle} />
         )}
 
@@ -678,7 +678,9 @@ function ApiKeyDialog({ onClose }) {
           <div>
             <div style={{ fontSize: 13, color: '#334155', fontWeight: 500 }}>思考模式</div>
             <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
-              {config.provider === 'deepseek' ? '关闭可加速响应；deepseek-reasoner 恒为思考模式' : '当前提供商不支持，此开关无效'}
+              {config.provider === 'deepseek'
+                ? '关闭可加速响应；V4 的思考与非思考是同一个模型，由这里切换'
+                : '当前提供商不支持，此开关无效'}
             </div>
           </div>
           <label style={{ position: 'relative', display: 'inline-flex', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}>

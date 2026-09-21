@@ -14,8 +14,10 @@ const PROVIDERS = {
   deepseek: {
     name: 'DeepSeek',
     endpoint: 'https://api.deepseek.com/v1/chat/completions',
-    models: ['deepseek-chat', 'deepseek-reasoner'],
-    defaultModel: 'deepseek-chat',
+    // deepseek-chat / deepseek-reasoner 已于 2026-07-24 下线，
+    // 再用这两个名字请求会直接报 400/404。现在只有 v4-flash / v4-pro。
+    models: ['deepseek-v4-flash', 'deepseek-v4-pro'],
+    defaultModel: 'deepseek-v4-flash',
     authHeader: (key) => ({ 'Authorization': `Bearer ${key}` }),
   },
   openai: {
@@ -34,6 +36,23 @@ const PROVIDERS = {
   },
 };
 
+/**
+ * 已下线的模型名 → 现在可用的名字。
+ *
+ * 配置存在 localStorage 里，老用户的浏览器里还留着 deepseek-chat。
+ * 不迁移的话他们升级后会一直用一个必然报错的模型，
+ * 而且界面上看不出问题出在哪（下拉框里那个值看着挺正常）。
+ */
+const RETIRED_MODELS = {
+  'deepseek-chat': 'deepseek-v4-flash',
+  'deepseek-reasoner': 'deepseek-v4-flash',
+};
+
+function migrateModel(name) {
+  if (!name) return name;
+  return RETIRED_MODELS[name] || name;
+}
+
 // ============================================================
 // RUNTIME CONFIG — persisted to localStorage
 // ============================================================
@@ -51,7 +70,7 @@ const saved = loadConfig();
 const AI_CONFIG = {
   provider: saved?.provider || 'deepseek',
   endpoint: saved?.endpoint || PROVIDERS.deepseek.endpoint,
-  model: saved?.model || PROVIDERS.deepseek.defaultModel,
+  model: migrateModel(saved?.model) || PROVIDERS.deepseek.defaultModel,
   apiKey: saved?.apiKey || '',
   thinking: saved?.thinking ?? false, // 思考模式：默认关闭
 };
@@ -94,13 +113,16 @@ export function switchProvider(providerId) {
 }
 
 /**
- * 生成「思考模式」请求参数。DeepSeek 的 deepseek-chat（V3.1+）默认开启思考，
- * 通过 thinking:{type:'disabled'} 可关闭以加速响应；deepseek-reasoner 恒为思考模式，不传该参数。
+ * 生成「思考模式」请求参数。
+ *
+ * V4 把「选模型」和「是否思考」拆开了：v4-flash / v4-pro 都同时支持两种模式，
+ * 由 thinking 字段控制。旧版的 deepseek-reasoner 恒为思考模式，那个特例
+ * 随着模型下线已经没有意义。
+ *
  * 其它提供商不识别该字段，故仅对 DeepSeek 生效。
  */
 function buildThinkingParam() {
   if (AI_CONFIG.provider !== 'deepseek') return null;
-  if (AI_CONFIG.model === 'deepseek-reasoner') return null;
   return { type: AI_CONFIG.thinking ? 'enabled' : 'disabled' };
 }
 
@@ -1037,6 +1059,12 @@ export async function runAgentLoop({
     const assistantMsg = { role: 'assistant' };
     if (r.rawMessage.content != null) assistantMsg.content = r.rawMessage.content;
     if (r.toolCalls.length) assistantMsg.tool_calls = r.rawMessage.tool_calls;
+    // 思考模式下发生过工具调用，后续请求必须完整回传 reasoning_content，
+    // 否则 API 直接返回 400。这个字段不在 OpenAI 标准里，容易被漏掉——
+    // 而且只在「开着思考 + 用工具」这个组合下才暴露，平时看不出来。
+    if (r.rawMessage.reasoning_content != null) {
+      assistantMsg.reasoning_content = r.rawMessage.reasoning_content;
+    }
     messages.push(assistantMsg);
 
     if (onEvent) {

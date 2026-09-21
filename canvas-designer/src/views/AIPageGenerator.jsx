@@ -443,7 +443,7 @@ function ApiKeyDialog({ onClose }) {
         </label>
         <input value={config.model}
           onChange={(e) => setConfig({ ...config, model: e.target.value })}
-          placeholder="deepseek-chat"
+          placeholder="deepseek-v4-flash"
           className="hb-input" style={{ marginBottom: 0 }} />
 
         <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 3, marginTop: 12 }}>
